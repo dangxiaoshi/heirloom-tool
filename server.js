@@ -19,7 +19,7 @@ const upload = multer({
   dest: 'uploads/',
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   fileFilter: (_, file, cb) => {
-    const ok = /\.(mp3|m4a|wav|amr|ogg|aac|flac)$/i.test(file.originalname);
+    const ok = /\.(mp3|m4a|wav|amr|ogg|aac|flac|webm)$/i.test(file.originalname);
     cb(ok ? null : new Error('不支持的格式'), ok);
   }
 });
