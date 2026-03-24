@@ -423,29 +423,24 @@ let state = {
 document.getElementById('startBtn').addEventListener('click', async () => {
   const name = document.getElementById('elderName').value.trim();
   if (!name) {
-    document.getElementById('elderName').focus();
+    const field = document.getElementById('elderName');
+    field.style.borderColor = '#8B5E3C';
+    field.placeholder = '请先填写长辈的名字或称呼';
+    field.focus();
+    setTimeout(() => { field.style.borderColor = ''; }, 2000);
     return;
   }
-  state.elderName   = name;
-  state.relation    = document.getElementById('relation').value.trim() || '子女';
-  state.module      = document.getElementById('moduleSelect').value;
+  state.elderName = name;
+  state.relation  = document.getElementById('relation').value.trim() || '子女';
+  state.module    = document.getElementById('moduleSelect').value;
 
+  // 立刻切换到采访界面，不等麦克风权限
   document.getElementById('setupScreen').style.display = 'none';
-  const cs = document.getElementById('chatScreen');
-  cs.style.display = 'flex';
-
+  document.getElementById('chatScreen').style.display = 'flex';
   document.getElementById('topbarName').textContent = state.elderName;
   document.getElementById('topbarModule').textContent = '板块 · ' + state.module;
 
-  // Request mic permission early
-  try {
-    state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch(e) {
-    addBubble('hint', '⚠️ 无法访问麦克风，请在浏览器设置中允许麦克风权限，然后刷新页面。');
-    return;
-  }
-
-  // Kick off the first question
+  // 获取第一个问题
   await getFirstQuestion();
 });
 
@@ -471,7 +466,7 @@ async function getFirstQuestion() {
     }
   } catch(e) {
     hideThinking();
-    addBubble('hint', '网络错误，请检查服务器是否启动。');
+    addBubble('hint', '⚠️ 获取问题失败：' + e.message + ' — 请刷新页面重试。');
   }
 }
 
