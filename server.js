@@ -40,8 +40,11 @@ async function callDashScope(body) {
       body: JSON.stringify(body)
     }
   );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || data.code || '请求失败');
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch { throw new Error(`DashScope 返回非JSON响应 (${res.status}): ${text.slice(0, 200)}`); }
+  if (!res.ok) throw new Error(data.message || data.code || `请求失败(${res.status})`);
   return data;
 }
 
@@ -64,8 +67,11 @@ async function callQwen(messages, systemPrompt) {
       })
     }
   );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || '请求失败');
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); }
+  catch { throw new Error(`Qwen 返回非JSON响应 (${res.status}): ${text.slice(0, 200)}`); }
+  if (!res.ok) throw new Error(data.error?.message || `请求失败(${res.status})`);
   return data.choices[0].message.content;
 }
 
