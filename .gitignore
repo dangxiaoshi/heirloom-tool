@@ -1,0 +1,9 @@
+.env
+node_modules/
+uploads/
+*.mp3
+*.m4a
+*.amr
+*.wav
+*.webm
+bun.lock
