@@ -137,8 +137,8 @@ app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
   const { question, elderName, relation, module: mod, history: historyRaw } = req.body;
   const history = JSON.parse(historyRaw || '[]');
 
-  let transcript = '';
-  if (req.file) {
+  let transcript = req.body.preTranscript || '';
+  if (!transcript && req.file) {
     try {
       const audioBuffer = fs.readFileSync(req.file.path);
       const base64 = audioBuffer.toString('base64');

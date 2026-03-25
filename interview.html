@@ -519,30 +519,40 @@ async function processRecording() {
   state.isThinking = true;
   const blob = new Blob(state.audioChunks, { type: state.mediaRecorder.mimeType });
 
-  const form = new FormData();
-  form.append('audio', blob, 'recording.webm');
-  form.append('question', state.currentQuestion);
-  form.append('elderName', state.elderName);
-  form.append('relation', state.relation);
-  form.append('module', state.module);
-  form.append('history', JSON.stringify(state.history));
-
   try {
-    const res = await fetch('/api/interview-turn', { method: 'POST', body: form });
-    const data = await res.json();
+    // ── 第一步：转录，立刻显示文字 ──────────────────────
+    setStatus('转录中…', 'thinking');
+    const audioForm = new FormData();
+    audioForm.append('audio', blob, 'recording.webm');
+    const transRes = await fetch('/api/transcribe', { method: 'POST', body: audioForm });
+    const transData = await transRes.json();
+    if (transData.error) throw new Error(transData.error);
 
+    const transcript = transData.transcript;
+    addBubble('user', transcript);  // 立刻显示用户说的话
+    state.history.push({ role: 'user', content: transcript });
+    state.transcript.push({ question: state.currentQuestion, answer: transcript });
+    state.questionCount++;
+
+    // ── 第二步：AI 决定追问/下一题 ──────────────────────
+    setStatus('AI 思考中…', 'thinking');
+    showThinking();
+    const decideRes = await fetch('/api/interview-turn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        preTranscript: transcript,
+        question: state.currentQuestion,
+        elderName: state.elderName,
+        relation: state.relation,
+        module: state.module,
+        history: JSON.stringify(state.history)
+      })
+    });
+    const data = await decideRes.json();
     if (data.error) throw new Error(data.error);
 
-    // Show what elder said
-    if (data.transcript) {
-      addBubble('user', data.transcript);
-      state.history.push({ role: 'user', content: data.transcript });
-      state.transcript.push({ question: state.currentQuestion, answer: data.transcript });
-      state.questionCount++;
-    }
-
-    // Short pause, then show AI response
-    await sleep(600);
+    await sleep(400);
     hideThinking();
 
     if (data.action === 'followup' && data.question) {
@@ -550,8 +560,8 @@ async function processRecording() {
       state.history.push({ role: 'assistant', content: data.question });
       addBubble('ai', data.question);
     } else if (data.action === 'next' && data.question) {
-      addBubble('hint', data.summary || '');
-      await sleep(400);
+      if (data.summary) addBubble('hint', data.summary);
+      await sleep(300);
       state.currentQuestion = data.question;
       state.history.push({ role: 'assistant', content: data.question });
       addBubble('ai', data.question);
@@ -563,6 +573,7 @@ async function processRecording() {
 
     setStatus('点击麦克风开始说话', '');
   } catch(e) {
+    hideThinking();
     addBubble('hint', `出错了：${e.message}`);
     setStatus('点击麦克风开始说话', '');
   }
