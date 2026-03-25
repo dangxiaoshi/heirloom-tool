@@ -462,7 +462,7 @@ async function getFirstQuestion() {
     if (data.question) {
       state.currentQuestion = data.question;
       state.history.push({ role: 'assistant', content: data.question });
-      addBubble('ai', data.question);
+      await addBubbleTypewriter('ai', data.question, 45);
     }
   } catch(e) {
     hideThinking();
@@ -529,15 +529,14 @@ async function processRecording() {
     if (transData.error) throw new Error(transData.error);
 
     const transcript = transData.transcript;
-    addBubble('user', transcript);  // 立刻显示用户说的话
     state.history.push({ role: 'user', content: transcript });
     state.transcript.push({ question: state.currentQuestion, answer: transcript });
     state.questionCount++;
 
-    // ── 第二步：AI 决定追问/下一题 ──────────────────────
+    // ── 第二步：打字机显示转录 + 同时发 AI 请求（并行）──
     setStatus('AI 思考中…', 'thinking');
-    showThinking();
-    const decideRes = await fetch('/api/interview-turn', {
+
+    const decidePromise = fetch('/api/interview-turn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -548,23 +547,30 @@ async function processRecording() {
         module: state.module,
         history: JSON.stringify(state.history)
       })
-    });
-    const data = await decideRes.json();
+    }).then(r => r.json());
+
+    // 打字机效果展示转录文字（速度与文字长度自适应，最快30ms/字，最慢60ms）
+    const msPerChar = Math.min(60, Math.max(30, Math.round(3000 / transcript.length)));
+    await addBubbleTypewriter('user', transcript, msPerChar);
+
+    // 等 AI 结果（打字机期间已在并行处理）
+    showThinking();
+    const data = await decidePromise;
     if (data.error) throw new Error(data.error);
 
-    await sleep(400);
+    await sleep(300);
     hideThinking();
 
     if (data.action === 'followup' && data.question) {
       state.currentQuestion = data.question;
       state.history.push({ role: 'assistant', content: data.question });
-      addBubble('ai', data.question);
+      await addBubbleTypewriter('ai', data.question, 45);
     } else if (data.action === 'next' && data.question) {
       if (data.summary) addBubble('hint', data.summary);
       await sleep(300);
       state.currentQuestion = data.question;
       state.history.push({ role: 'assistant', content: data.question });
-      addBubble('ai', data.question);
+      await addBubbleTypewriter('ai', data.question, 45);
     } else if (data.action === 'complete') {
       addBubble('hint', '这个板块的问题已经问完了。');
       await finishInterview();
@@ -730,6 +736,37 @@ function setStatus(text, cls) {
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// 打字机效果：逐字显示气泡，返回 Promise，同时可以做别的事
+function addBubbleTypewriter(type, text, msPerChar = 40) {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = `bubble-row ${type === 'user' ? 'user' : 'ai'}`;
+
+  let bubbleEl;
+  if (type === 'ai') {
+    row.innerHTML = `<div class="avatar ai-av">传</div><div class="bubble ai"></div>`;
+    bubbleEl = row.querySelector('.bubble');
+  } else {
+    row.innerHTML = `<div class="bubble user"></div><div class="avatar user-av">${state.elderName ? state.elderName[0] : '长'}</div>`;
+    bubbleEl = row.querySelector('.bubble');
+  }
+  chat.appendChild(row);
+
+  return new Promise(resolve => {
+    let i = 0;
+    function tick() {
+      if (i < text.length) {
+        bubbleEl.textContent += text[i++];
+        chat.scrollTop = chat.scrollHeight;
+        setTimeout(tick, msPerChar);
+      } else {
+        resolve();
+      }
+    }
+    tick();
+  });
+}
 </script>
 </body>
 </html>
