@@ -99,8 +99,11 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
       }
     });
 
-    const text = data?.output?.choices?.[0]?.message?.content?.[0]?.text;
+    let text = data?.output?.choices?.[0]?.message?.content?.[0]?.text;
     if (!text) throw new Error('转录结果为空，请检查音频文件');
+
+    // 去掉模型自带的前缀
+    text = text.replace(/^这段音频的原始内容是[：:]\s*/i, '').trim();
 
     res.json({ transcript: text });
   } catch (err) {
@@ -157,7 +160,8 @@ app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
           }]
         }
       });
-      transcript = data?.output?.choices?.[0]?.message?.content?.[0]?.text || '';
+      let raw = data?.output?.choices?.[0]?.message?.content?.[0]?.text || '';
+      transcript = raw.replace(/^这段音频的原始内容是[：:]\s*/i, '').trim();
       fs.unlink(req.file.path, () => {});
     } catch (err) {
       console.error('转录失败:', err.message);
@@ -172,10 +176,11 @@ app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
   // 决定：追问 or 下一题 or 完成
   const systemPrompt = `你是传家宝的AI采访师，正在采访「${mod}」板块，采访对象是${elderName}（${relation}的长辈）。
 
-三层追问原则：
-1. 如果回答<30字或只有事实没有感受：追问感受（「那时候您是什么心情？」）
-2. 如果有感受但没有深度：追问意义（「这件事对您来说意味着什么？」）
-3. 如果回答充分（事实+感受+意义都有）：移到下一个问题
+判断原则（只追问一次，不要层层追问）：
+- 如果回答超过80字，或者已经包含具体细节/感受：直接进入下一个问题（action: next）
+- 如果回答非常短（不足30字）且只是泛泛而谈，没有任何具体内容：可以温和地追问一次（action: followup）
+- 追问要自然、简短，像朋友聊天，不是审讯。比如「能多说一点吗？」「当时发生了什么？」
+- 宁可少追问，不要让对方感到被逼问
 
 返回 JSON（不要有其他文字）：
 {
