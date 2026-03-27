@@ -104,6 +104,7 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
 
     // 去掉模型自带的前缀
     text = text.replace(/^这段音频的原始内容是[：:]\s*/i, '').trim();
+    text = text.replace(/^['''"""]([\s\S]+)['''"""]$/, '$1').trim();
 
     res.json({ transcript: text });
   } catch (err) {
@@ -118,11 +119,14 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
 app.post('/api/interview-start', async (req, res) => {
   const { elderName, relation, module: mod } = req.body;
 
-  const systemPrompt = `你是传家宝的AI采访师，引导者，不是机器人。你正在帮助${relation || '子女'}采访${elderName || '长辈'}，板块是「${mod}」。
+  const systemPrompt = `你在帮${relation || '子女'}采访${elderName || '长辈'}，板块是「${mod}」。
 
-你的风格：温暖、有耐心、会追问。像一个真正关心这段历史的人。
+好问题的标准：
+- 从具体场景切入，不问抽象感受（"家里的灶台是什么样的" 好过 "那时候感情如何"）
+- 一次只问一件事，不要复合问题
+- 让人觉得"这个我能说，我想说"
 
-请生成这个板块最好的开场问题（一个问题，不超过40字，直接问，不要有前缀和解释）。`;
+请生成这个板块最好的开场问题（不超过35字，直接问，不要前缀）。`;
 
   try {
     const question = await callQwen(
@@ -161,7 +165,8 @@ app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
         }
       });
       let raw = data?.output?.choices?.[0]?.message?.content?.[0]?.text || '';
-      transcript = raw.replace(/^这段音频的原始内容是[：:]\s*/i, '').trim();
+      raw = raw.replace(/^这段音频的原始内容是[：:]\s*/i, '').trim();
+      transcript = raw.replace(/^['''"""]([\s\S]+)['''"""]$/, '$1').trim();
       fs.unlink(req.file.path, () => {});
     } catch (err) {
       console.error('转录失败:', err.message);
@@ -176,20 +181,22 @@ app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
   // 决定：追问 or 下一题 or 完成
   const systemPrompt = `你是传家宝的AI采访师，正在采访「${mod}」板块，采访对象是${elderName}（${relation}的长辈）。
 
-判断原则（只追问一次，不要层层追问）：
-- 如果回答超过80字，或者已经包含具体细节/感受：直接进入下一个问题（action: next）
-- 如果回答非常短（不足30字）且只是泛泛而谈，没有任何具体内容：可以温和地追问一次（action: followup）
-- 追问要自然、简短，像朋友聊天，不是审讯。比如「能多说一点吗？」「当时发生了什么？」
-- 宁可少追问，不要让对方感到被逼问
+规则：
+- 默认直接进入下一个问题（action: next）
+- 只有一种情况追问：长辈提到了某个有趣/具体/意外的细节，顺着那个细节多问一句
+  好的追问："爬的是什么树？" "那条下水道在哪里？" "后来怎样了？"
+  禁止的问法：不要问"心里是什么感觉""有什么感受""心情怎样"这类问题
+- 一次只问一件事，禁止复合问题（"做了什么？感觉如何？"这种禁止）
+- 问题要让人自然想接着说
 
 返回 JSON（不要有其他文字）：
 {
   "action": "followup" 或 "next",
-  "question": "下一个问题或追问（不超过40字，直接问，不要前缀）",
+  "question": "下一个问题或追问（不超过35字，直接问，不要前缀）",
   "summary": "这段回答的一句话精华（用于传家册，15字以内）"
 }
 
-如果这个板块的核心问题都已问完（超过5轮），返回 {"action":"complete","summary":"..."}`;
+超过5轮或话题充分了，返回 {"action":"complete","summary":"..."}`;
 
   try {
     const contextMessages = [
