@@ -93,7 +93,7 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
           role: 'user',
           content: [
             { audio: `data:audio/${fmt};base64,${base64}` },
-            { text: '请将这段音频完整转录为文字，保留说话者的原话和语气，不要总结，不要加工。如果有方言请尽量转录为普通话书面语。' }
+            { text: '直接输出说话人说的话，不要任何前缀、不要引号、不要解释。如有方言转为普通话书面语。' }
           ]
         }]
       }
@@ -102,8 +102,8 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
     let text = data?.output?.choices?.[0]?.message?.content?.[0]?.text;
     if (!text) throw new Error('转录结果为空，请检查音频文件');
 
-    // 去掉模型自带的前缀
-    text = text.replace(/^这段音频的原始内容是[：:]\s*/i, '').trim();
+    // 双保险：去掉模型可能残留的前缀和引号
+    text = text.replace(/^这段音频[^，。\n]*[是：:]\s*/i, '').trim();
     text = text.replace(/^['''"""]([\s\S]+)['''"""]$/, '$1').trim();
 
     res.json({ transcript: text });
@@ -159,13 +159,13 @@ app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
             role: 'user',
             content: [
               { audio: `data:audio/${fmt};base64,${base64}` },
-              { text: '请将这段音频完整转录为文字，保留原话，如有方言转为普通话书面语，不要总结。' }
+              { text: '直接输出说话人说的话，不要任何前缀、不要引号、不要解释。如有方言转为普通话书面语。' }
             ]
           }]
         }
       });
       let raw = data?.output?.choices?.[0]?.message?.content?.[0]?.text || '';
-      raw = raw.replace(/^这段音频的原始内容是[：:]\s*/i, '').trim();
+      raw = raw.replace(/^这段音频[^，。\n]*[是：:]\s*/i, '').trim();
       transcript = raw.replace(/^['''"""]([\s\S]+)['''"""]$/, '$1').trim();
       fs.unlink(req.file.path, () => {});
     } catch (err) {
@@ -184,10 +184,13 @@ app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
 规则：
 - 默认直接进入下一个问题（action: next）
 - 只有一种情况追问：长辈提到了某个有趣/具体/意外的细节，顺着那个细节多问一句
-  好的追问："爬的是什么树？" "那条下水道在哪里？" "后来怎样了？"
-  禁止的问法：不要问"心里是什么感觉""有什么感受""心情怎样"这类问题
-- 一次只问一件事，禁止复合问题（"做了什么？感觉如何？"这种禁止）
-- 问题要让人自然想接着说
+  好的追问举例："爬的是什么树？" "那条沟渠有多宽？" "后来怎样了？" "是哪一年的事？"
+- 一次只问一件事，禁止复合问题
+- 问题要让人自然想接着说，问具体的事物、地点、人物、时间
+
+【硬性禁止——违反这条直接判为质量不合格】：
+问题里绝对不能包含：心情、感觉、感受、感想、体会、想法、心里、内心、情感、情绪、心态
+改成问事实："那条沟渠在哪？" 而不是 "看到沟渠是什么心情？"
 
 返回 JSON（不要有其他文字）：
 {
