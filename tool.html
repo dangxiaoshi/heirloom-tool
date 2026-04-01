@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>传家宝工具台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F5F0E8; --surface: #FBF8F3; --surface-2: #EDE8DF;
+      --ink: #1C1714; --ink-2: #5C5248; --ink-3: #9C9088;
+      --accent: #8B5E3C; --gold: #9B6F28; --green: #4A5940;
+      --serif: 'Noto Serif SC', serif; --sans: 'Noto Sans SC', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--ink); font-family: var(--sans);
+      font-weight: 300; font-size: 15px; line-height: 1.7; min-height: 100vh; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+    /* ── Layout ── */
+    .app { max-width: 800px; margin: 0 auto; padding: 0 24px 80px; }
+
+    header { padding: 32px 0 24px; border-bottom: 1px solid var(--surface-2); margin-bottom: 40px; display: flex; align-items: baseline; gap: 10px; }
+    .logo { font-family: var(--serif); font-size: 22px; color: var(--ink); }
+    .logo-sub { font-size: 13px; color: var(--ink-3); letter-spacing: 0.05em; }
+
+    h2 { font-family: var(--serif); font-size: 20px; font-weight: 400; color: var(--ink); margin-bottom: 20px; letter-spacing: 0.02em; }
+
+    .section { background: var(--surface); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+    .section-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 16px; }
+
+    /* ── Form ── */
+    .field { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+    input[type=text], select, textarea {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--surface-2); border-radius: 6px;
+      background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px;
+      font-weight: 300; transition: border-color 0.2s ease-out;
+    }
+    input[type=text]:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
+    textarea { resize: vertical; line-height: 1.75; }
+    select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239C9088' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      border: 2px dashed var(--surface-2); border-radius: 10px; padding: 32px 20px;
+      text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(139,94,60,0.03); }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.4; }
+    .upload-text { font-size: 14px; color: var(--ink-2); }
+    .upload-hint { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+    .upload-filename { font-size: 13px; color: var(--accent); margin-top: 8px; font-weight: 400; }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 44px; padding: 0 20px; border: none; border-radius: 9999px;
+      font-family: var(--sans); font-size: 14px; font-weight: 400; cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s; letter-spacing: 0.02em;
+      -webkit-tap-highlight-color: transparent; }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--accent); color: #FBF8F3; }
+    .btn-primary:not(:disabled):hover { background: #7A5234; }
+    .btn-green { background: var(--green); color: #F5F0E8; }
+    .btn-green:not(:disabled):hover { background: #3A4832; }
+    .btn-ghost { background: transparent; color: var(--accent); border: 1.5px solid rgba(139,94,60,0.3); }
+    .btn-ghost:not(:disabled):hover { background: rgba(139,94,60,0.06); }
+
+    /* ── Status ── */
+    .status { display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+      border-radius: 8px; font-size: 13px; margin: 16px 0; }
+    .status.loading { background: rgba(139,94,60,0.06); color: var(--accent); }
+    .status.error { background: rgba(139,58,58,0.07); color: #8B3A3A; }
+    .status.success { background: rgba(74,89,64,0.08); color: var(--green); }
+    .spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Transcript result ── */
+    .transcript-box {
+      background: var(--bg); border: 1.5px solid var(--surface-2); border-radius: 8px;
+      padding: 16px; font-size: 14px; line-height: 1.85; color: var(--ink);
+      min-height: 120px; white-space: pre-wrap; word-break: break-all;
+    }
+    .transcript-box[contenteditable] { cursor: text; }
+    .transcript-box[contenteditable]:focus { border-color: var(--accent); outline: none; }
+
+    /* ── Output cards ── */
+    .output-chapter {
+      background: var(--bg); border-radius: 10px; padding: 24px;
+      font-size: 15px; line-height: 1.9; color: var(--ink); white-space: pre-wrap;
+      border-left: 2px solid var(--gold); margin-bottom: 16px;
+      font-family: var(--serif); font-weight: 400;
+    }
+    .output-chapter-title {
+      font-family: var(--serif); font-size: 13px; color: var(--gold);
+      letter-spacing: 0.06em; margin-bottom: 14px; font-weight: 400;
+    }
+
+    .gene-card { background: rgba(74,89,64,0.07); border-radius: 10px; padding: 20px; }
+    .gene-card-title { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--green); margin-bottom: 14px; }
+    .gene-row { margin-bottom: 12px; }
+    .gene-row:last-child { margin-bottom: 0; }
+    .gene-row-label { font-size: 12px; color: var(--green); opacity: 0.8; margin-bottom: 4px; letter-spacing: 0.04em; }
+    .gene-row-text { font-size: 14px; color: var(--ink); line-height: 1.7; }
+
+    /* ── Action row ── */
+    .action-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+    /* ── Copy toast ── */
+    .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+      background: var(--ink); color: #F5F0E8; padding: 10px 20px; border-radius: 9999px;
+      font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 999; white-space: nowrap; }
+    .toast.show { opacity: 1; }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 1px solid var(--surface-2); margin: 32px 0; }
+
+    .step-tag { display: inline-block; background: rgba(139,94,60,0.1); color: var(--accent);
+      font-size: 11px; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 9999px;
+      margin-bottom: 14px; font-weight: 400; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <span class="logo">传家宝</span>
+    <span class="logo-sub">内容工具台 · 内测专用</span>
+  </header>
+
+  <!-- STEP 1: 基本信息 -->
+  <section class="section">
+    <p class="section-label">Step 1 · 长辈信息</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field">
+        <label for="elderName">长辈称呼</label>
+        <input type="text" id="elderName" placeholder="如：外公、爷爷">
+      </div>
+      <div class="field">
+        <label for="relation">你与长辈的关系</label>
+        <input type="text" id="relation" placeholder="如：外孙女">
+      </div>
+    </div>
+    <div class="field">
+      <label for="module">所属板块</label>
+      <select id="module">
+        <option value="">— 选择板块（可选）—</option>
+        <optgroup label="时间维度">
+          <option>板块01 · 童年的家</option>
+          <option>板块02 · 读书与成长</option>
+          <option>板块03 · 青年与选择</option>
+          <option>板块04 · 爱情那一章</option>
+          <option>板块05 · 为人父母</option>
+          <option>板块06 · 中年的重量</option>
+          <option>板块07 · 现在的你</option>
+        </optgroup>
+        <optgroup label="关系维度">
+          <option>板块08 · 与父亲</option>
+          <option>板块09 · 与母亲</option>
+          <option>板块10 · 与兄弟姐妹</option>
+          <option>板块11 · 与老朋友</option>
+          <option>板块12 · 与故乡</option>
+          <option>板块13 · 与自己</option>
+          <option>板块14 · 与时代</option>
+        </optgroup>
+        <optgroup label="故事线维度">
+          <option>板块15 · 一次出发</option>
+          <option>板块16 · 一次转折</option>
+          <option>板块17 · 一次失败</option>
+          <option>板块18 · 一次选择</option>
+          <option>板块19 · 一件骄傲的事</option>
+          <option>板块20 · 一件遗憾的事</option>
+          <option>板块21 · 给后代的话</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="field">
+      <label for="question">采访问题（可选）</label>
+      <input type="text" id="question" placeholder="如：您小时候住在哪里？能描述一下那个房子或院子吗？">
+    </div>
+  </section>
+
+  <!-- STEP 2: 上传录音 -->
+  <section class="section">
+    <p class="section-label">Step 2 · 上传录音</p>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="audioFile" accept=".mp3,.m4a,.wav,.amr,.ogg,.aac,.flac">
+      <div class="upload-icon">🎙</div>
+      <p class="upload-text">点击上传录音文件</p>
+      <p class="upload-hint">支持 MP3、M4A、WAV、AMR · 最大 50MB</p>
+      <p class="upload-filename" id="fileName"></p>
+    </div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-primary" id="transcribeBtn" disabled>
+        转录录音
+      </button>
+    </div>
+    <div id="transcribeStatus"></div>
+  </section>
+
+  <!-- STEP 3: 转录结果 -->
+  <section class="section" id="transcriptSection" style="display:none">
+    <p class="section-label">Step 3 · 转录文字 <span style="color:var(--ink-3);font-size:11px;font-style:normal;">可直接编辑修改</span></p>
+    <div class="transcript-box" id="transcriptBox" contenteditable="true"></div>
+    <div class="action-row">
+      <button class="btn btn-green" id="generateBtn">
+        生成章节 + 家脉图片段
+      </button>
+      <button class="btn btn-ghost" onclick="copyText('transcriptBox')">
+        复制转录文字
+      </button>
+    </div>
+    <div id="generateStatus"></div>
+  </section>
+
+  <!-- STEP 4: 生成结果 -->
+  <section class="section" id="outputSection" style="display:none">
+    <p class="section-label">Step 4 · 传家册章节</p>
+    <div class="output-chapter-title" id="outputTitle"></div>
+    <div class="output-chapter" id="outputChapter"></div>
+    <div class="action-row" style="margin-bottom:24px;">
+      <button class="btn btn-ghost" onclick="copyText('outputChapter')">复制章节文字</button>
+      <button class="btn btn-ghost" id="regenBtn">重新生成</button>
+    </div>
+
+    <hr>
+
+    <p class="section-label" style="color:var(--green);">家脉图片段</p>
+    <div class="gene-card" id="geneCard">
+      <p class="gene-card-title">AI 提取 · 家族基因信号</p>
+      <div class="gene-row">
+        <p class="gene-row-label">世代天赋</p>
+        <p class="gene-row-text" id="geneTalent"></p>
+      </div>
+      <div class="gene-row" id="geneLimitRow">
+        <p class="gene-row-label">家族局限</p>
+        <p class="gene-row-text" id="geneLimit"></p>
+      </div>
+      <div class="gene-row">
+        <p class="gene-row-label">与子女的连接</p>
+        <p class="gene-row-text" id="geneConnection"></p>
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-ghost" style="color:var(--green);border-color:rgba(74,89,64,0.3);" onclick="copyGene()">复制家脉图片段</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">已复制到剪贴板</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  // ── 文件选择 ─────────────────────────────────────────
+  let selectedFile = null;
+
+  $('audioFile').addEventListener('change', e => {
+    selectedFile = e.target.files[0];
+    $('fileName').textContent = selectedFile ? `✓ ${selectedFile.name}` : '';
+    $('transcribeBtn').disabled = !selectedFile;
+  });
+
+  const zone = $('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      selectedFile = file;
+      $('fileName').textContent = `✓ ${file.name}`;
+      $('transcribeBtn').disabled = false;
+    }
+  });
+
+  // ── 转录 ──────────────────────────────────────────────
+  $('transcribeBtn').addEventListener('click', async () => {
+    if (!selectedFile) return;
+    setStatus('transcribeStatus', 'loading', '正在转录，请稍候…（约30秒）');
+    $('transcribeBtn').disabled = true;
+
+    const form = new FormData();
+    form.append('audio', selectedFile);
+
+    try {
+      const res = await fetch('/api/transcribe', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      $('transcriptBox').textContent = data.transcript;
+      $('transcriptSection').style.display = 'block';
+      $('transcriptSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setStatus('transcribeStatus', 'success', '转录完成，可以直接编辑文字');
+    } catch (err) {
+      setStatus('transcribeStatus', 'error', `转录失败：${err.message}`);
+      $('transcribeBtn').disabled = false;
+    }
+  });
+
+  // ── 生成章节 ──────────────────────────────────────────
+  async function generate() {
+    const transcript = $('transcriptBox').textContent.trim();
+    if (!transcript) return;
+
+    setStatus('generateStatus', 'loading', '正在生成章节和家脉图片段…（约15秒）');
+    $('generateBtn').disabled = true;
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcript,
+          question: $('question').value.trim(),
+          module: $('module').value,
+          elderName: $('elderName').value.trim() || '长辈',
+          relation: $('relation').value.trim() || '子女'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      // 填充章节
+      $('outputTitle').textContent = data.title || '';
+      $('outputChapter').textContent = data.chapter || '';
+
+      // 填充家脉图
+      const g = data.gene || {};
+      $('geneTalent').textContent = g.talent || '—';
+      $('geneLimit').textContent = g.limit || '';
+      $('geneLimitRow').style.display = g.limit ? 'block' : 'none';
+      $('geneConnection').textContent = g.connection || '—';
+
+      $('outputSection').style.display = 'block';
+      $('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setStatus('generateStatus', 'success', '生成完成');
+    } catch (err) {
+      setStatus('generateStatus', 'error', `生成失败：${err.message}`);
+    } finally {
+      $('generateBtn').disabled = false;
+    }
+  }
+
+  $('generateBtn').addEventListener('click', generate);
+  $('regenBtn').addEventListener('click', generate);
+
+  // ── 工具函数 ──────────────────────────────────────────
+  function setStatus(id, type, msg) {
+    const el = $(id);
+    el.innerHTML = type === 'loading'
+      ? `<div class="status loading"><div class="spinner"></div>${msg}</div>`
+      : `<div class="status ${type}">${msg}</div>`;
+  }
+
+  function copyText(id) {
+    const text = $(id).textContent.trim();
+    navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
+  }
+
+  function copyGene() {
+    const talent = $('geneTalent').textContent;
+    const limit = $('geneLimit').textContent;
+    const conn = $('geneConnection').textContent;
+    const elder = $('elderName').value || '长辈';
+    const text = `【家脉图片段 · ${elder}】\n\n世代天赋：${talent}\n${limit ? `家族局限：${limit}\n` : ''}与子女的连接：${conn}`;
+    navigator.clipboard.writeText(text).then(() => showToast('家脉图片段已复制'));
+  }
+
+  function showToast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+</script>
+<p style="text-align:center;font-size:11px;color:#9C9088;letter-spacing:0.06em;padding:16px 0 24px;">WeChat: gaoqiantongxue</p>
+</body>
+</html>
