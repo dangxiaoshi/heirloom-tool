@@ -7,3 +7,4 @@ uploads/
 *.wav
 *.webm
 bun.lock
+.gstack/

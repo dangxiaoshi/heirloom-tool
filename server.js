@@ -19,7 +19,7 @@ const upload = multer({
   dest: 'uploads/',
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   fileFilter: (_, file, cb) => {
-    const ok = /\.(mp3|m4a|wav|amr|ogg|aac|flac|webm)$/i.test(file.originalname);
+    const ok = /\.(mp3|m4a|mp4|wav|amr|ogg|aac|flac|webm)$/i.test(file.originalname);
     cb(ok ? null : new Error('不支持的格式'), ok);
   }
 });
@@ -84,7 +84,7 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
     const audioBuffer = fs.readFileSync(filePath);
     const base64 = audioBuffer.toString('base64');
     const ext = path.extname(req.file.originalname).slice(1).toLowerCase();
-    const fmt = ext === 'm4a' ? 'mp4' : ext; // qwen-audio 用 mp4 表示 m4a
+    const fmt = (ext === 'm4a' || ext === 'mp4') ? 'mp4' : ext; // qwen-audio 用 mp4 表示 m4a/mp4
 
     const data = await callDashScope({
       model: 'qwen-audio-turbo',
@@ -106,7 +106,7 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
     text = text.replace(/^这段音频[^，。\n]*[是：:]\s*/i, '').trim();
     text = text.replace(/^['''"""]([\s\S]+)['''"""]$/, '$1').trim();
 
-    res.json({ transcript: text });
+    res.json({ transcript: text, cardId: req.body.cardId || null });
   } catch (err) {
     console.error('转录失败:', err.message);
     res.status(500).json({ error: err.message });
@@ -298,6 +298,23 @@ ${question ? `采访问题：${question}` : ''}
     console.error('生成失败:', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// ── 路由 6：收集联系方式 ──────────────────────────────────
+app.post('/api/contact', (req, res) => {
+  const { personName, contact, cardCount } = req.body || {};
+  if (!contact || !String(contact).trim()) {
+    return res.status(400).json({ error: '请填写联系方式' });
+  }
+
+  console.log('联系方式提交:', {
+    personName: personName || '',
+    contact: String(contact).trim(),
+    cardCount: Number(cardCount) || 0,
+    receivedAt: new Date().toISOString()
+  });
+
+  res.json({ ok: true });
 });
 
 // ── 启动 ─────────────────────────────────────────────────

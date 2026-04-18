@@ -135,7 +135,7 @@ body {
 /* ══════════════════════════════
    Screen 3 — 主界面
 ══════════════════════════════ */
-#s3 { padding: 44px 0 48px; align-items: center; }
+#s3 { padding: 44px 0 96px; align-items: center; }
 
 /* ── Pile ── */
 #pile-view {
@@ -392,6 +392,33 @@ body {
   margin-top: 6px;
   position: relative; z-index: 1;
 }
+.listen-badge {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #FF3B30;
+  background: rgba(251,248,243,.92);
+  border-radius: 999px;
+  padding: 5px 10px;
+  box-shadow: 0 4px 12px rgba(28,23,20,.08);
+}
+.listen-badge.active { display: inline-flex; }
+.listen-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #FF3B30;
+  animation: listenBlink 1s ease-in-out infinite;
+}
+@keyframes listenBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .25; }
+}
 .cface-bottom {
   padding: 16px 20px 20px;
   background: var(--surface);
@@ -458,6 +485,159 @@ body {
   color: var(--ink-3);
   line-height: 1.8;
 }
+.done-meta {
+  font-size: 12px;
+  color: var(--ink-3);
+  letter-spacing: .04em;
+}
+
+/* ══════════════════════════════
+   Recording Bar
+══════════════════════════════ */
+.rec-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  height: 48px;
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  background: rgba(251,248,243,.96);
+  border-top: 1px solid rgba(92,82,72,.12);
+  backdrop-filter: blur(10px);
+  z-index: 50;
+}
+.rec-bar.visible { display: flex; }
+.rec-status {
+  min-width: 76px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ink-2);
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+.rec-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(156,144,136,.5);
+}
+.rec-bar.recording .rec-status-dot {
+  background: #FF3B30;
+  animation: listenBlink 1s ease-in-out infinite;
+}
+.rec-bar.uploading .rec-status-dot,
+.rec-bar.error .rec-status-dot {
+  animation: none;
+}
+.rec-bar.uploading .rec-status-dot { background: var(--gold); }
+.rec-bar.error .rec-status-dot { background: #C55B4A; }
+.rec-wave {
+  flex: 1;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+.rec-wave-bar {
+  width: 3px;
+  min-height: 6px;
+  border-radius: 999px;
+  background: rgba(139,94,60,.22);
+  transition: height .12s ease, background .12s ease;
+}
+.rec-bar.recording .rec-wave-bar { background: rgba(255,59,48,.6); }
+.rec-bar.uploading .rec-wave-bar { background: rgba(155,111,40,.55); }
+.rec-bar.error .rec-wave-bar { background: rgba(197,91,74,.55); }
+.rec-side {
+  min-width: 76px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.rec-retry {
+  display: none;
+  border: none;
+  background: rgba(139,94,60,.1);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.rec-bar.error .rec-retry { display: inline-flex; }
+
+/* ══════════════════════════════
+   Screen 4
+══════════════════════════════ */
+#s4 {
+  justify-content: center;
+  padding: 40px 0 56px;
+}
+.thanks-wrap {
+  background: var(--surface);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.thanks-hero {
+  min-height: 220px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,.45), transparent 34%),
+    linear-gradient(135deg, #B78656, #8B5E3C 55%, #4A5940);
+  display: flex;
+  align-items: flex-end;
+  padding: 28px 24px;
+}
+.thanks-hero-text {
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1.35;
+  color: rgba(255,255,255,.95);
+}
+.thanks-body {
+  padding: 26px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.thanks-copy {
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--ink-2);
+}
+.thanks-input {
+  width: 100%;
+  background: #fff;
+  border: 1px solid rgba(92,82,72,.14);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+}
+.thanks-input:focus { border-color: rgba(139,94,60,.35); }
+.thanks-hint {
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.7;
+}
+.thanks-feedback {
+  min-height: 20px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.thanks-feedback.ok { color: var(--green); }
+.thanks-feedback.error { color: #C55B4A; }
 
 /* ══════════════════════════════
    Shared Buttons
@@ -612,13 +792,52 @@ body {
     <!-- 全部完成 -->
     <div id="done-view">
       <div class="done-char">传</div>
-      <div class="done-title">全部聊完了</div>
+      <div class="done-title" id="done-title">全部聊完了</div>
       <div class="done-sub" id="done-sub">
         21 张卡都聊过了<br>留下了一段珍贵的家族记忆
       </div>
+      <div class="done-meta" id="done-meta"></div>
       <button class="btn-ghost" style="max-width:200px" onclick="resetSession()">重新开始</button>
     </div>
 
+    <div class="rec-bar" id="rec-bar">
+      <div class="rec-status">
+        <span class="rec-status-dot"></span>
+        <span id="rec-status-text">准备中</span>
+      </div>
+      <div class="rec-wave" id="rec-wave"></div>
+      <div class="rec-side">
+        <span id="rec-side-text">00:00</span>
+        <button class="rec-retry" id="rec-retry-btn" type="button" onclick="retryCurrentUpload()">重试</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="screen" id="s4">
+    <div class="thanks-wrap">
+      <div class="thanks-hero">
+        <div class="thanks-hero-text">谢谢你，今天愿意<br>把这些都说出来</div>
+      </div>
+      <div class="thanks-body">
+        <div class="thanks-copy">
+          我们正在整理这段对话，大约需要 1-3 个工作日。<br>
+          报告完成后，我们会直接发给你。
+        </div>
+        <input
+          class="thanks-input"
+          id="contact-input"
+          type="text"
+          placeholder="留下微信号或邮箱"
+          autocomplete="off"
+          autocorrect="off"
+          spellcheck="false"
+        >
+        <button class="btn-solid" id="contact-submit" type="button" onclick="submitContact()">提交联系方式</button>
+        <div class="thanks-hint">我们只会用这个联系方式把整理后的内容发给你。</div>
+        <div class="thanks-feedback" id="contact-feedback"></div>
+      </div>
+    </div>
   </div>
 
 </div><!-- .app -->
@@ -809,13 +1028,35 @@ let completed = new Set();
 let swapsLeft = 2;
 let currentCard = null;
 let isFlipping = false;
+let cardTranscripts = {};
+let stream = null;
+let recorder = null;
+let chunks = [];
+let audioCtx = null;
+let analyser = null;
+let freqData = null;
+let waveFrame = null;
+let cardRecordStartedAt = 0;
+let timerFrame = null;
+let micDenied = false;
+let isCardRecording = false;
+let recordingCardId = null;
+let uploadingCount = 0;
+let retryQueue = new Map();
+let lastRetryCardId = null;
+let isShowingThankYou = false;
+let currentBarState = 'idle';
+
+const WAVE_BAR_COUNT = 14;
+
+function transcriptStorageKey() { return 'heirloom_transcripts_' + personName; }
 
 /* ─── LocalStorage ─── */
 function storageKey() { return 'heirloom_' + personName; }
 
 function loadProgress() {
   try {
-    const raw = localStorage.getItem(storageKey());
+    const raw = sessionStorage.getItem(storageKey());
     if (raw) {
       const data = JSON.parse(raw);
       completed = new Set(data.completed || []);
@@ -823,18 +1064,33 @@ function loadProgress() {
       completed = new Set();
     }
   } catch(e) { completed = new Set(); }
+
+  try {
+    const rawTranscripts = sessionStorage.getItem(transcriptStorageKey());
+    cardTranscripts = rawTranscripts ? JSON.parse(rawTranscripts) : {};
+  } catch (e) {
+    cardTranscripts = {};
+  }
 }
 
 function saveProgress() {
   try {
-    localStorage.setItem(storageKey(), JSON.stringify({ completed: [...completed] }));
+    sessionStorage.setItem(storageKey(), JSON.stringify({ completed: [...completed] }));
   } catch(e) {}
+}
+
+function saveCardTranscript(cardId, transcript) {
+  cardTranscripts[cardId] = transcript;
+  try {
+    sessionStorage.setItem(transcriptStorageKey(), JSON.stringify(cardTranscripts));
+  } catch (e) {}
 }
 
 /* ─── Screen helpers ─── */
 function setScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  updateBarVisibility();
 }
 
 function showView(id) {
@@ -856,6 +1112,7 @@ function goSpeech() {
 
 function goPile() {
   setScreen('s3');
+  initMic();
   showPile();
 }
 
@@ -877,8 +1134,17 @@ function showPile() {
 }
 
 function showDone() {
-  document.getElementById('done-sub').innerHTML =
-    `和 <strong style="color:var(--accent)">${personName}</strong> 的 21 张卡都聊过了<br>留下了一段珍贵的家族记忆`;
+  const hasFailedUploads = retryQueue.size > 0;
+  const waitingUploads = uploadingCount > 0;
+  document.getElementById('done-title').textContent = waitingUploads ? '正在整理录音' : hasFailedUploads ? '有录音待重试' : '全部聊完了';
+  document.getElementById('done-sub').innerHTML = waitingUploads
+    ? `和 <strong style="color:var(--accent)">${personName}</strong> 的内容正在上传整理中<br>请先不要关闭这个页面`
+    : `和 <strong style="color:var(--accent)">${personName}</strong> 的 21 张卡都聊过了<br>留下了一段珍贵的家族记忆`;
+  document.getElementById('done-meta').textContent = hasFailedUploads
+    ? '有录音上传失败，请点底部“重试”后再继续。'
+    : waitingUploads
+      ? `还有 ${uploadingCount} 段录音正在处理中`
+      : '';
   showView('done-view');
 }
 
@@ -890,8 +1156,14 @@ function updateProgress() {
 
 function resetSession() {
   completed = new Set();
-  saveProgress();
+  cardTranscripts = {};
+  retryQueue.clear();
+  uploadingCount = 0;
+  isShowingThankYou = false;
   currentCard = null;
+  saveProgress();
+  try { sessionStorage.removeItem(transcriptStorageKey()); } catch (e) {}
+  setBarState(micDenied ? 'hidden' : 'idle');
   showPile();
 }
 
@@ -951,8 +1223,14 @@ function swapCard() {
 
 function markDone() {
   if (!currentCard || isFlipping) return;
+  stopCardRecording();
   completed.add(currentCard.id);
   saveProgress();
+  if (micDenied && completed.size === CARDS.length) {
+    isShowingThankYou = true;
+    setScreen('s4');
+    return;
+  }
 
   // Flip back to cover, then return to pile
   isFlipping = true;
@@ -980,6 +1258,7 @@ function flipToFace(card) {
   setTimeout(() => {
     fc.classList.remove('flipping');
     isFlipping = false;
+    startCardRecording();
   }, 500);
 }
 
@@ -1011,6 +1290,10 @@ function renderFace(card) {
   document.getElementById('flip-card').innerHTML = `
     <div class="cface">
       <div class="cface-top" style="background:${col}">
+        <div class="listen-badge" id="listen-badge">
+          <span class="listen-dot"></span>
+          <span>正在听</span>
+        </div>
         <span class="cface-bg">${card.deco}</span>
         <div class="cface-tag">${card.fw} · ${card.fwNum}</div>
         <div class="cface-chars">${card.twoChar}</div>
@@ -1034,12 +1317,288 @@ function updateSwapBtn() {
     : '已换过两次了';
 }
 
+function initWaveBars() {
+  const wave = document.getElementById('rec-wave');
+  if (wave.children.length) return;
+  for (let i = 0; i < WAVE_BAR_COUNT; i++) {
+    const bar = document.createElement('span');
+    bar.className = 'rec-wave-bar';
+    wave.appendChild(bar);
+  }
+}
+
+function updateBarVisibility() {
+  const bar = document.getElementById('rec-bar');
+  bar.classList.toggle('visible', document.getElementById('s3').classList.contains('active') && !micDenied);
+}
+
+function setBarState(state) {
+  currentBarState = state;
+  const bar = document.getElementById('rec-bar');
+  const status = document.getElementById('rec-status-text');
+  const side = document.getElementById('rec-side-text');
+  bar.classList.remove('idle', 'recording', 'uploading', 'error');
+
+  if (state === 'hidden') {
+    bar.classList.remove('visible');
+    return;
+  }
+
+  updateBarVisibility();
+  bar.classList.add(state);
+
+  if (state === 'recording') {
+    status.textContent = '正在听';
+  } else if (state === 'uploading') {
+    status.textContent = '上传中…';
+  } else if (state === 'error') {
+    status.textContent = '上传失败';
+  } else {
+    status.textContent = '准备中';
+    side.textContent = '00:00';
+  }
+}
+
+function formatDuration(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const mins = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+  const secs = String(totalSeconds % 60).padStart(2, '0');
+  return `${mins}:${secs}`;
+}
+
+function animateTimer() {
+  if (!isCardRecording) return;
+  document.getElementById('rec-side-text').textContent = formatDuration(Date.now() - cardRecordStartedAt);
+  timerFrame = requestAnimationFrame(animateTimer);
+}
+
+function animateWave() {
+  const bars = document.querySelectorAll('.rec-wave-bar');
+  if (!bars.length) return;
+  let volume = 0;
+
+  if (currentBarState === 'recording' && analyser && freqData) {
+    analyser.getByteFrequencyData(freqData);
+    volume = freqData.reduce((sum, item) => sum + item, 0) / freqData.length;
+  }
+
+  bars.forEach((bar, index) => {
+    const seed = currentBarState === 'uploading'
+      ? (index % 4) * 6 + 12
+      : currentBarState === 'error'
+        ? (index % 3) * 4 + 8
+        : 6;
+    const dynamic = currentBarState === 'recording'
+      ? Math.max(0, volume / 10 + ((index % 5) * 3))
+      : seed;
+    bar.style.height = `${Math.min(28, Math.max(6, dynamic))}px`;
+  });
+
+  waveFrame = requestAnimationFrame(animateWave);
+}
+
+function ensureAudioAnalyser() {
+  if (!stream || analyser) return;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return;
+  audioCtx = audioCtx || new Ctx();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 64;
+  freqData = new Uint8Array(analyser.frequencyBinCount);
+  audioCtx.createMediaStreamSource(stream).connect(analyser);
+}
+
+async function initMic() {
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    micDenied = true;
+    setBarState('hidden');
+    return;
+  }
+
+  if (stream || micDenied) {
+    updateBarVisibility();
+    return;
+  }
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    ensureAudioAnalyser();
+    initWaveBars();
+    micDenied = false;
+    setBarState('idle');
+  } catch (e) {
+    micDenied = true;
+    setBarState('hidden');
+  }
+}
+
+function showRecordingIndicator() {
+  const badge = document.getElementById('listen-badge');
+  if (badge) badge.classList.add('active');
+}
+
+function hideRecordingIndicator() {
+  const badge = document.getElementById('listen-badge');
+  if (badge) badge.classList.remove('active');
+}
+
+async function startCardRecording() {
+  if (micDenied || !currentCard) return;
+  if (!stream) await initMic();
+  if (!stream || !window.MediaRecorder || recorder?.state === 'recording') return;
+
+  const mimeType = ['audio/webm', 'audio/ogg', 'audio/mp4']
+    .find(type => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || '';
+
+  chunks = [];
+  recordingCardId = currentCard.id;
+  recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+  recorder.ondataavailable = event => {
+    if (event.data && event.data.size > 0) chunks.push(event.data);
+  };
+  recorder.onstop = () => {
+    const recordedChunks = chunks.slice();
+    const type = recorder.mimeType || mimeType || 'audio/webm';
+    const cardId = recordingCardId;
+    chunks = [];
+    if (recordedChunks.length) {
+      uploadCard(cardId, recordedChunks, type);
+    } else {
+      setBarState('error');
+      showDone();
+    }
+  };
+  recorder.start(5000);
+
+  ensureAudioAnalyser();
+  isCardRecording = true;
+  cardRecordStartedAt = Date.now();
+  cancelAnimationFrame(timerFrame);
+  animateTimer();
+  showRecordingIndicator();
+  setBarState('recording');
+}
+
+function stopCardRecording() {
+  isCardRecording = false;
+  cancelAnimationFrame(timerFrame);
+  hideRecordingIndicator();
+
+  if (recorder && recorder.state !== 'inactive') {
+    recorder.stop();
+  } else if (!uploadingCount) {
+    setBarState('idle');
+  }
+}
+
+async function uploadCard(cardId, chunkList, mimeType) {
+  uploadingCount += 1;
+  setBarState('uploading');
+
+  const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+  const blob = new Blob(chunkList, { type: mimeType });
+  const form = new FormData();
+  form.append('audio', blob, `card_${cardId}.${ext}`);
+  form.append('cardId', String(cardId));
+
+  try {
+    const res = await fetch('/api/transcribe', { method: 'POST', body: form });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || '上传失败');
+
+    saveCardTranscript(cardId, data.transcript || '');
+    retryQueue.delete(cardId);
+    lastRetryCardId = null;
+  } catch (err) {
+    retryQueue.set(cardId, { chunks: chunkList.slice(), mimeType });
+    lastRetryCardId = cardId;
+    setBarState('error');
+  } finally {
+    uploadingCount = Math.max(0, uploadingCount - 1);
+    if (currentBarState !== 'error') {
+      setBarState(uploadingCount > 0 ? 'uploading' : 'idle');
+    }
+    maybeEnterThankYou();
+    if (!isShowingThankYou && completed.size === CARDS.length) {
+      showDone();
+    }
+  }
+}
+
+function retryCurrentUpload() {
+  if (lastRetryCardId == null) return;
+  retryUpload(lastRetryCardId);
+}
+
+function retryUpload(cardId) {
+  const item = retryQueue.get(cardId);
+  if (!item) return;
+  retryQueue.delete(cardId);
+  if (lastRetryCardId === cardId) lastRetryCardId = null;
+  uploadCard(cardId, item.chunks, item.mimeType);
+}
+
+function maybeEnterThankYou() {
+  if (isShowingThankYou) return;
+  if (completed.size !== CARDS.length) return;
+  if (uploadingCount !== 0) return;
+  if (retryQueue.size > 0) return;
+  isShowingThankYou = true;
+  setScreen('s4');
+}
+
+async function submitContact() {
+  const input = document.getElementById('contact-input');
+  const feedback = document.getElementById('contact-feedback');
+  const submit = document.getElementById('contact-submit');
+  const contact = input.value.trim();
+
+  if (!contact) {
+    feedback.textContent = '请先留下微信号或邮箱。';
+    feedback.className = 'thanks-feedback error';
+    return;
+  }
+
+  submit.disabled = true;
+  feedback.textContent = '提交中…';
+  feedback.className = 'thanks-feedback';
+
+  try {
+    const res = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        personName,
+        contact,
+        cardCount: completed.size
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || '提交失败');
+
+    input.style.display = 'none';
+    submit.style.display = 'none';
+    feedback.textContent = '已收到，我们会尽快联系你 ✓';
+    feedback.className = 'thanks-feedback ok';
+  } catch (err) {
+    console.log('Contact fallback:', { personName, contact, cardCount: completed.size });
+    feedback.textContent = '提交失败，请截图发给我们';
+    feedback.className = 'thanks-feedback error';
+    submit.disabled = false;
+  }
+}
+
 /* ═══════════════════════════════════════
    键盘支持
 ═══════════════════════════════════════ */
 document.getElementById('name-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') goSpeech();
 });
+document.getElementById('contact-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitContact();
+});
+initWaveBars();
+animateWave();
 </script>
 </body>
 </html>
