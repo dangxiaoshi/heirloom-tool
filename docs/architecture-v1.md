@@ -179,7 +179,7 @@ Transcript
 - recordingId
 - text
 - language
-- provider          # dashscope / openai / aliyun-asr
+- provider          # tongyi-tingwu / openai
 - status
 - createdAt
 ```
@@ -265,16 +265,16 @@ MemoryItem
 
 ### 转写服务
 
-既然你要用阿里云语音模型，建议把转写能力固定抽象成 provider：
+既然你要用通义听悟，建议把转写能力固定抽象成 provider：
 
 ```text
 services/transcription/
   transcription.service.ts
   providers/
-    aliyun-asr.provider.ts
+    tongyi-tingwu.provider.ts
 ```
 
-业务层只认 `transcription.service`，不要在路由里直接调用阿里云接口。
+业务层只认 `transcription.service`，不要在路由里直接调用云厂商接口。
 
 ### 数据库
 
@@ -486,7 +486,7 @@ heirloom-tool/
           transcription/
             transcription.service.ts
             providers/
-              aliyun-asr.provider.ts
+              tongyi-tingwu.provider.ts
           storage/
             oss.service.ts
           memory/
@@ -515,8 +515,12 @@ ALIYUN_ACCESS_KEY_ID=
 ALIYUN_ACCESS_KEY_SECRET=
 ALIYUN_OSS_BUCKET=
 ALIYUN_OSS_REGION=
-ALIYUN_ASR_APP_KEY=
-ALIYUN_ASR_REGION=cn-shanghai
+
+DASHSCOPE_API_KEY=
+DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com
+TONGYI_TINGWU_APP_KEY=
+TONGYI_TINGWU_SUBMIT_PATH=/api/v1/services/audio/asr/transcription
+TONGYI_TINGWU_POLL_PATH=/api/v1/tasks/{jobId}
 ```
 
 ### 1.0 最稳的后端链路
