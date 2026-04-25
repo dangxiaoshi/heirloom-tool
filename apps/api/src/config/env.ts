@@ -7,15 +7,14 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   ALIYUN_ACCESS_KEY_ID: z.string().optional(),
   ALIYUN_ACCESS_KEY_SECRET: z.string().optional(),
+  ALIBABA_CLOUD_SECURITY_TOKEN: z.string().optional(),
   ALIYUN_OSS_BUCKET: z.string().optional(),
   ALIYUN_OSS_REGION: z.string().optional(),
   ALIYUN_OSS_ENDPOINT: z.string().optional(),
   ALIYUN_OSS_CDN_BASE_URL: z.string().optional(),
-  DASHSCOPE_API_KEY: z.string().optional(),
-  DASHSCOPE_BASE_URL: z.string().optional(),
   TONGYI_TINGWU_APP_KEY: z.string().optional(),
-  TONGYI_TINGWU_SUBMIT_PATH: z.string().optional(),
-  TONGYI_TINGWU_POLL_PATH: z.string().optional(),
+  TONGYI_TINGWU_ENDPOINT: z.string().optional(),
+  TONGYI_TINGWU_SOURCE_LANGUAGE: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

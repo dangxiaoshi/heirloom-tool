@@ -1,8 +1,14 @@
 import type { Request, Response } from "express";
 import { pollTranscriptionResult } from "../services/transcription/transcription.service.js";
 
+function getRecordingId(params: Request["params"]) {
+  const value = params.recordingId;
+  return typeof value === "string" ? value : "";
+}
+
 export async function getTranscript(req: Request, res: Response) {
-  const transcript = await pollTranscriptionResult(req.params.recordingId).catch((error: unknown) => {
+  const recordingId = getRecordingId(req.params);
+  const transcript = await pollTranscriptionResult(recordingId).catch((error: unknown) => {
     if (error instanceof Error && error.message === "transcript_not_found") {
       return null;
     }
@@ -12,7 +18,7 @@ export async function getTranscript(req: Request, res: Response) {
 
   if (!transcript) {
     res.status(404).json({
-      recordingId: req.params.recordingId,
+      recordingId,
       status: "not_found",
     });
     return;

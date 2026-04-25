@@ -1,6 +1,11 @@
 import type { Request, Response } from "express";
 import { createRecordingWithUpload, startTranscriptionJob } from "../services/transcription/transcription.service.js";
 
+function getRecordingId(params: Request["params"]) {
+  const value = params.recordingId;
+  return typeof value === "string" ? value : "";
+}
+
 export async function createRecording(req: Request, res: Response) {
   if (!req.file) {
     res.status(400).json({ error: "audio_file_required" });
@@ -23,7 +28,7 @@ export async function createRecording(req: Request, res: Response) {
 }
 
 export async function startRecordingTranscription(req: Request, res: Response) {
-  const { recordingId } = req.params;
+  const recordingId = getRecordingId(req.params);
   const result = await startTranscriptionJob(recordingId);
 
   res.json(result);
