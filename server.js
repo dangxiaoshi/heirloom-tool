@@ -8,6 +8,69 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 const KEY  = process.env.DASHSCOPE_API_KEY;
 
+// ── 数据目录 ──────────────────────────────────────────────
+const DATA_DIR       = path.join(__dirname, 'data');
+const AUDIO_DIR      = path.join(DATA_DIR, 'audio');
+const TRANSCRIPTS_FILE = path.join(DATA_DIR, 'transcripts.jsonl');
+const CONTACTS_FILE  = path.join(DATA_DIR, 'contacts.jsonl');
+fs.mkdirSync(AUDIO_DIR, { recursive: true });
+
+function appendJsonl(file, obj) {
+  fs.appendFileSync(file, JSON.stringify(obj) + '\n', 'utf8');
+}
+
+// ── Obsidian 路径（在 .env 里设置 OBSIDIAN_NOTES_DIR 可覆盖）─
+const OBSIDIAN_DIR = process.env.OBSIDIAN_NOTES_DIR || path.join(
+  process.env.HOME,
+  'Library/Mobile Documents/com~apple~CloudDocs/Documents/obsidian/dangxiaoshi/项目/紫花海/传家宝/采访记录'
+);
+
+// 当前 session 的转录内容（单用户内测足够）
+let sessionTranscripts = [];
+
+function writeObsidianNote(personName, contact, transcripts) {
+  try {
+    fs.mkdirSync(OBSIDIAN_DIR, { recursive: true });
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const safeName = (personName || '未知').replace(/[/\\:*?"<>|]/g, '');
+    const fileName = `采访记录_${safeName}_${date}.md`;
+    const filePath = path.join(OBSIDIAN_DIR, fileName);
+
+    const lines = [
+      '---',
+      `title: 采访记录 · ${personName || '未知'} · ${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`,
+      `date: ${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`,
+      'tags:',
+      '  - 传家宝',
+      '  - 采访记录',
+      '---',
+      '',
+      `# 采访记录 · ${personName || '未知'}`,
+      '',
+      `**联系方式**：${contact}  `,
+      `**卡片数**：${transcripts.length} 张  `,
+      `**记录时间**：${new Date().toLocaleString('zh-CN')}`,
+      '',
+      '---',
+      '',
+    ];
+
+    for (const t of transcripts) {
+      lines.push(`## 卡片 ${t.cardId}`);
+      lines.push('');
+      lines.push(t.transcript);
+      lines.push('');
+      lines.push('---');
+      lines.push('');
+    }
+
+    fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
+    console.log('✅ Obsidian 笔记已写入:', fileName);
+  } catch (e) {
+    console.error('写入 Obsidian 失败:', e.message);
+  }
+}
+
 if (!KEY) {
   console.error('\n❌  缺少 DASHSCOPE_API_KEY');
   console.error('   在 Railway 控制台设置环境变量 DASHSCOPE_API_KEY\n');
@@ -106,12 +169,28 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
     text = text.replace(/^这段音频[^，。\n]*[是：:]\s*/i, '').trim();
     text = text.replace(/^['''"""]([\s\S]+)['''"""]$/, '$1').trim();
 
-    res.json({ transcript: text, cardId: req.body.cardId || null });
+    const cardId = req.body.cardId || null;
+    const sessionName = req.body.personName || req.body.sessionName || '';
+    const timestamp = new Date().toISOString();
+
+    // 保存音频文件
+    const audioExt = path.extname(req.file.originalname) || '.webm';
+    const audioName = `${sessionName ? sessionName + '_' : ''}card${cardId || 'unknown'}_${Date.now()}${audioExt}`;
+    const audioDest = path.join(AUDIO_DIR, audioName);
+    fs.copyFileSync(filePath, audioDest);
+
+    // 保存文字稿
+    appendJsonl(TRANSCRIPTS_FILE, { cardId, sessionName, transcript: text, audioFile: audioName, savedAt: timestamp });
+
+    // 累积到当前 session
+    sessionTranscripts.push({ cardId, transcript: text });
+
+    res.json({ transcript: text, cardId });
   } catch (err) {
     console.error('转录失败:', err.message);
     res.status(500).json({ error: err.message });
   } finally {
-    fs.unlink(filePath, () => {}); // 转录完删除临时文件
+    fs.unlink(filePath, () => {}); // 删除临时文件
   }
 });
 
@@ -307,12 +386,18 @@ app.post('/api/contact', (req, res) => {
     return res.status(400).json({ error: '请填写联系方式' });
   }
 
-  console.log('联系方式提交:', {
+  const entry = {
     personName: personName || '',
     contact: String(contact).trim(),
     cardCount: Number(cardCount) || 0,
-    receivedAt: new Date().toISOString()
-  });
+    receivedAt: new Date().toISOString(),
+  };
+  appendJsonl(CONTACTS_FILE, entry);
+  console.log('联系方式已保存:', entry);
+
+  // 自动写入 Obsidian
+  writeObsidianNote(personName, String(contact).trim(), sessionTranscripts);
+  sessionTranscripts = []; // 清空，准备下一次
 
   res.json({ ok: true });
 });
