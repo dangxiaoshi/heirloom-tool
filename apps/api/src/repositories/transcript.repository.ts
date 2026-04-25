@@ -2,7 +2,7 @@ type TranscriptStatus = "uploaded" | "processing" | "done" | "failed";
 
 export type TranscriptEntity = {
   recordingId: string;
-  provider: "tongyi-tingwu";
+  provider: "dashscope-paraformer";
   status: TranscriptStatus;
   transcript: string;
   jobId?: string;

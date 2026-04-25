@@ -6,6 +6,7 @@ export type RecordingEntity = {
   question: string;
   storageKey: string;
   audioUrl: string;
+  transcriptionSourceUrl: string;
   mimeType: string;
   sizeBytes: number;
   status: RecordingStatus;

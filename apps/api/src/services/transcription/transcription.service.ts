@@ -1,7 +1,8 @@
 import { createRecording, getRecordingById, updateRecording } from "../../repositories/recording.repository.js";
 import { createOrUpdateTranscript, getTranscriptByRecordingId } from "../../repositories/transcript.repository.js";
+import { uploadAudioToDashScope } from "../storage/dashscope-file.service.js";
 import { uploadAudioToOss } from "../storage/oss.service.js";
-import { TongyiTingwuProvider } from "./providers/tongyi-tingwu.provider.js";
+import { DashScopeAsrProvider } from "./providers/dashscope-asr.provider.js";
 
 type CreateRecordingInput = {
   fileBuffer: Buffer;
@@ -12,20 +13,28 @@ type CreateRecordingInput = {
   question?: string;
 };
 
-const transcriptionProvider = new TongyiTingwuProvider();
+const transcriptionProvider = new DashScopeAsrProvider();
 
 export async function createRecordingWithUpload(input: CreateRecordingInput) {
-  const uploaded = await uploadAudioToOss({
-    fileBuffer: input.fileBuffer,
-    fileName: input.fileName,
-    mimeType: input.mimeType,
-  });
+  const [uploaded, transcriptionUploaded] = await Promise.all([
+    uploadAudioToOss({
+      fileBuffer: input.fileBuffer,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+    }),
+    uploadAudioToDashScope({
+      fileBuffer: input.fileBuffer,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+    }),
+  ]);
 
   const recording = createRecording({
     sessionId: input.sessionId ?? "session-dev",
     question: input.question ?? "",
     storageKey: uploaded.key,
     audioUrl: uploaded.url,
+    transcriptionSourceUrl: transcriptionUploaded.ossUrl,
     mimeType: input.mimeType,
     sizeBytes: input.sizeBytes,
     status: "uploaded",
@@ -33,7 +42,7 @@ export async function createRecordingWithUpload(input: CreateRecordingInput) {
 
   createOrUpdateTranscript({
     recordingId: recording.id,
-    provider: "tongyi-tingwu",
+    provider: "dashscope-paraformer",
     status: "uploaded",
     transcript: "",
   });
@@ -61,7 +70,7 @@ export async function startTranscriptionJob(recordingId: string) {
   }
 
   const submitted = await transcriptionProvider.submitFileTranscription({
-    fileUrl: recording.audioUrl,
+    fileUrl: recording.transcriptionSourceUrl,
   });
 
   updateRecording(recordingId, {

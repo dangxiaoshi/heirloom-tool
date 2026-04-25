@@ -179,7 +179,7 @@ Transcript
 - recordingId
 - text
 - language
-- provider          # tongyi-tingwu / openai
+- provider          # dashscope-paraformer / openai
 - status
 - createdAt
 ```
@@ -265,13 +265,13 @@ MemoryItem
 
 ### 转写服务
 
-既然你要用通义听悟，建议把转写能力固定抽象成 provider：
+既然你要用 DashScope Paraformer，建议把转写能力固定抽象成 provider：
 
 ```text
 services/transcription/
   transcription.service.ts
   providers/
-    tongyi-tingwu.provider.ts
+    dashscope-asr.provider.ts
 ```
 
 业务层只认 `transcription.service`，不要在路由里直接调用云厂商接口。
@@ -486,7 +486,7 @@ heirloom-tool/
           transcription/
             transcription.service.ts
             providers/
-              tongyi-tingwu.provider.ts
+              dashscope-asr.provider.ts
           storage/
             oss.service.ts
           memory/
@@ -517,9 +517,9 @@ ALIYUN_OSS_BUCKET=
 ALIYUN_OSS_REGION=
 
 ALIBABA_CLOUD_SECURITY_TOKEN=
-TONGYI_TINGWU_APP_KEY=
-TONGYI_TINGWU_ENDPOINT=https://tingwu.cn-beijing.aliyuncs.com
-TONGYI_TINGWU_SOURCE_LANGUAGE=cn
+DASHSCOPE_API_KEY=
+DASHSCOPE_API_ENDPOINT=https://dashscope.aliyuncs.com
+DASHSCOPE_ASR_MODEL=paraformer-v2
 ```
 
 ### 1.0 最稳的后端链路
