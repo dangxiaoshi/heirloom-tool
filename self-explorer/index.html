@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>传家宝 Heirloom — 看见你的家族，看见你自己</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@300;400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #F5F0E8;
+      --surface:   #FBF8F3;
+      --surface-2: #EDE8DF;
+      --ink:       #1C1714;
+      --ink-2:     #5C5248;
+      --ink-3:     #9C9088;
+      --accent:    #8B5E3C;
+      --gold:      #9B6F28;
+      --gold-deco: #C4974A;
+      --accent-2:  #4A5940;
+      --error:     #8B3A3A;
+
+      --radius-sm:   4px;
+      --radius-md:   8px;
+      --radius-lg:   16px;
+      --radius-full: 9999px;
+
+      --serif:      'Noto Serif SC', serif;
+      --sans:       'Noto Sans SC', sans-serif;
+      --en-serif:   'Instrument Serif', serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-weight: 300;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      max-width: 430px;
+      margin: 0 auto;
+      overflow-x: hidden;
+    }
+
+    /* ── Focus rings ── */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 48px;
+      padding: 0 24px;
+      border: none;
+      border-radius: var(--radius-full);
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background-color 0.2s ease-out,
+                  color 0.2s ease-out,
+                  box-shadow 0.15s ease-out,
+                  transform 0.1s ease-out;
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #FBF8F3;
+      width: 100%;
+      font-size: 16px;
+      min-height: 52px;
+    }
+    .btn-primary:hover { background: #7A5234; box-shadow: 0 4px 16px rgba(139,94,60,0.25); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1.5px solid rgba(139,94,60,0.35);
+      width: 100%;
+      min-height: 52px;
+      font-size: 16px;
+    }
+    .btn-ghost:hover { background: rgba(139,94,60,0.06); }
+
+    .btn-text {
+      background: transparent;
+      color: var(--ink-2);
+      font-size: 14px;
+      min-height: 44px;
+      padding: 0 8px;
+      font-weight: 300;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(245,240,232,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(28,23,20,0.06);
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .nav-logo-zh {
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--ink);
+      letter-spacing: 0.05em;
+    }
+    .nav-logo-en {
+      font-family: var(--en-serif);
+      font-size: 13px;
+      color: var(--ink-2);
+      letter-spacing: 0.03em;
+    }
+    .nav-cta {
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--accent);
+      background: rgba(139,94,60,0.08);
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      min-height: 36px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-out;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-cta:hover { background: rgba(139,94,60,0.14); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      padding: 64px 24px 56px;
+      overflow: hidden;
+    }
+
+    .hero-deco {
+      position: absolute;
+      top: 16px;
+      right: -16px;
+      font-family: var(--serif);
+      font-size: 180px;
+      font-weight: 400;
+      color: var(--ink);
+      opacity: 0.045;
+      pointer-events: none;
+      user-select: none;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--ink-3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    .hero-title {
+      font-family: var(--serif);
+      font-size: 38px;
+      font-weight: 400;
+      line-height: 1.25;
+      color: var(--ink);
+      text-wrap: balance;
+      margin-bottom: 8px;
+      letter-spacing: 0.01em;
+    }
+
+    .hero-title .highlight {
+      color: var(--gold);
+      position: relative;
+    }
+
+    .hero-subtitle {
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--ink-2);
+      margin-bottom: 32px;
+      letter-spacing: 0.03em;
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      color: var(--ink-2);
+      line-height: 1.75;
+      margin-bottom: 36px;
+      max-width: 320px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hero-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--ink-3);
+      margin-top: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--surface-2) 30%, var(--surface-2) 70%, transparent);
+      margin: 0 24px;
+    }
+
+    /* ── WHAT IT IS ── */
+    .what {
+      padding: 48px 24px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: var(--serif);
+      font-size: 26px;
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.4;
+      text-wrap: balance;
+      margin-bottom: 16px;
+      letter-spacing: 0.01em;
+    }
+
+    .section-body {
+      font-size: 15px;
+      color: var(--ink-2);
+      line-height: 1.8;
+    }
+
+    /* ── OUTPUT CARDS ── */
+    .outputs {
+      padding: 8px 24px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .output-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .output-card-deco {
+      position: absolute;
+      top: -8px;
+      right: 8px;
+      font-family: var(--serif);
+      font-size: 80px;
+      font-weight: 400;
+      opacity: 0.06;
+      pointer-events: none;
+      user-select: none;
+      line-height: 1;
+      color: var(--ink);
+    }
+
+    .output-card.gene .output-card-deco {
+      color: var(--accent-2);
+      opacity: 0.12;
+    }
+
+    .output-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      margin-bottom: 14px;
+    }
+
+    .output-card:not(.gene) .output-tag {
+      background: rgba(139,94,60,0.1);
+      color: var(--accent);
+    }
+
+    .output-card.gene .output-tag {
+      background: rgba(74,89,64,0.1);
+      color: var(--accent-2);
+    }
+
+    .output-title {
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--ink);
+      margin-bottom: 10px;
+      letter-spacing: 0.02em;
+    }
+
+    .output-desc {
+      font-size: 14px;
+      color: var(--ink-2);
+      line-height: 1.75;
+    }
+
+    .output-card.gene .output-title {
+      color: var(--accent-2);
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how {
+      background: var(--surface);
+      padding: 48px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .how-deco {
+      position: absolute;
+      bottom: -20px;
+      right: -10px;
+      font-family: var(--serif);
+      font-size: 160px;
+      font-weight: 400;
+      color: var(--ink);
+      opacity: 0.04;
+      pointer-events: none;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .steps {
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 40px;
+      bottom: -1px;
+      width: 1px;
+      background: linear-gradient(to bottom, var(--surface-2), transparent);
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1.5px solid var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--serif);
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--accent);
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-content {
+      padding-bottom: 32px;
+      flex: 1;
+    }
+
+    .step:last-child .step-content { padding-bottom: 0; }
+
+    .step-title {
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--ink);
+      margin-bottom: 6px;
+      padding-top: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    .step-desc {
+      font-size: 14px;
+      color: var(--ink-2);
+      line-height: 1.75;
+    }
+
+    /* ── STORY SAMPLE ── */
+    .story {
+      padding: 48px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .story-deco {
+      position: absolute;
+      top: 20px;
+      right: -12px;
+      font-family: var(--serif);
+      font-size: 160px;
+      font-weight: 400;
+      color: var(--ink);
+      opacity: 0.04;
+      pointer-events: none;
+      user-select: none;
+      line-height: 1;
+    }
+
+    .story-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      margin-top: 28px;
+      border-left: 2px solid var(--gold-deco);
+    }
+
+    .story-quote {
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.8;
+      margin-bottom: 20px;
+      letter-spacing: 0.02em;
+    }
+
+    .story-source {
+      font-size: 13px;
+      color: var(--ink-3);
+      letter-spacing: 0.03em;
+    }
+
+    .gene-sample {
+      background: rgba(74,89,64,0.06);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-top: 20px;
+      border: 1px solid rgba(74,89,64,0.12);
+    }
+
+    .gene-label {
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      margin-bottom: 10px;
+    }
+
+    .gene-text {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.75;
+    }
+
+    .gene-text strong {
+      font-weight: 500;
+      color: var(--accent-2);
+    }
+
+    /* ── PRICING ── */
+    .pricing {
+      background: var(--surface);
+      padding: 48px 24px;
+    }
+
+    .price-card {
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      margin-top: 28px;
+      border: 1px solid var(--surface-2);
+    }
+
+    .price-card.featured {
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .price-tag-row {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+
+    .price-amount {
+      font-family: var(--serif);
+      font-size: 36px;
+      font-weight: 400;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .price-card.featured .price-amount { color: var(--gold-deco); }
+
+    .price-unit {
+      font-size: 14px;
+      color: var(--ink-3);
+    }
+
+    .price-card.featured .price-unit { color: rgba(251,248,243,0.5); }
+
+    .price-name {
+      font-family: var(--serif);
+      font-size: 16px;
+      color: var(--ink-2);
+      margin-bottom: 20px;
+    }
+
+    .price-card.featured .price-name { color: rgba(251,248,243,0.7); }
+
+    .price-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .price-list li {
+      font-size: 14px;
+      color: var(--ink-2);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.5;
+    }
+
+    .price-card.featured .price-list li { color: rgba(251,248,243,0.75); }
+
+    .price-list li::before {
+      content: '·';
+      color: var(--accent);
+      font-size: 18px;
+      line-height: 1;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .price-card.featured .price-list li::before { color: var(--gold-deco); }
+
+    .btn-primary-dark {
+      background: var(--surface);
+      color: var(--ink);
+      width: 100%;
+      min-height: 48px;
+      font-family: var(--sans);
+      font-size: 15px;
+      border: none;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: background-color 0.2s ease-out;
+    }
+
+    .btn-primary-dark:hover { background: var(--bg); }
+
+    /* ── FINAL CTA ── */
+    .final-cta {
+      padding: 56px 24px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .final-cta-deco {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--serif);
+      font-size: 280px;
+      font-weight: 400;
+      color: var(--ink);
+      opacity: 0.028;
+      pointer-events: none;
+      user-select: none;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .final-cta-title {
+      font-family: var(--serif);
+      font-size: 28px;
+      font-weight: 400;
+      color: var(--ink);
+      line-height: 1.4;
+      text-wrap: balance;
+      margin-bottom: 14px;
+      letter-spacing: 0.01em;
+      position: relative;
+      z-index: 1;
+    }
+
+    .final-cta-sub {
+      font-size: 14px;
+      color: var(--ink-2);
+      line-height: 1.7;
+      margin-bottom: 36px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .final-cta-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--surface-2);
+      padding: 32px 24px 48px;
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--ink);
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .footer-tagline {
+      font-family: var(--en-serif);
+      font-style: italic;
+      font-size: 13px;
+      color: var(--ink-3);
+      letter-spacing: 0.04em;
+      margin-bottom: 28px;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--ink-3);
+      text-decoration: none;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s ease-out;
+    }
+
+    .footer-links a:hover { color: var(--accent); }
+
+    .footer-copy {
+      font-size: 12px;
+      color: var(--ink-3);
+      letter-spacing: 0.03em;
+    }
+
+    /* ── 内测 BADGE ── */
+    .beta-banner {
+      background: rgba(139,94,60,0.08);
+      border-bottom: 1px solid rgba(139,94,60,0.1);
+      padding: 10px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── STAT ROW ── */
+    .stat-row {
+      display: flex;
+      gap: 0;
+      border-top: 1px solid var(--surface-2);
+      border-bottom: 1px solid var(--surface-2);
+      margin: 0 24px 48px;
+    }
+
+    .stat-item {
+      flex: 1;
+      padding: 20px 0;
+      text-align: center;
+      border-right: 1px solid var(--surface-2);
+    }
+
+    .stat-item:last-child { border-right: none; }
+
+    .stat-num {
+      font-family: var(--serif);
+      font-size: 26px;
+      font-weight: 400;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--ink-3);
+      letter-spacing: 0.06em;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 内测提示 -->
+  <div class="beta-banner">
+    内测中 · 邀请制参与 · 特别适合心理咨询师和正在做自我探索的你
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">
+      <span class="nav-logo-zh">传家宝</span>
+      <span class="nav-logo-en">Heirloom</span>
+    </div>
+    <button class="nav-cta" onclick="location.href='interview.html'">
+      开始探索
+    </button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-deco" aria-hidden="true">脉</div>
+    <p class="hero-eyebrow">Family Pattern Map · 家脉探索 · 自我叙事</p>
+    <h1 class="hero-title">
+      你身上反复出现的模式，<br><span class="highlight">来自你的家族</span>
+    </h1>
+    <p class="hero-subtitle">看见来处，才拥有改变的自由</p>
+    <p class="hero-desc">
+      你的感情方式、赚钱模式、和别人的相处方式——<br>
+      这些不只是"你的性格"，<br>
+      是你的家族一代代流传下来的东西。<br><br>
+      传家宝帮你把自己的故事讲出来，<br>
+      从中提取你家族世代流传的天赋与局限——<br>
+      生成只属于你的<strong>家脉图</strong>。
+    </p>
+    <div class="hero-actions">
+      <button class="btn btn-primary" onclick="location.href='interview.html'">
+        申请加入内测，开始探索
+      </button>
+      <button class="btn btn-ghost" onclick="document.getElementById('what').scrollIntoView({behavior:'smooth'})">
+        了解家脉探索是什么
+      </button>
+    </div>
+    <p class="hero-note">邀请制内测 · 无需下载 App</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- STATS -->
+  <div class="stat-row">
+    <div class="stat-item">
+      <span class="stat-num">147</span>
+      <span class="stat-label">精选问题</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">3</span>
+      <span class="stat-label">访谈框架</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">2</span>
+      <span class="stat-label">专属报告</span>
+    </div>
+  </div>
+
+  <!-- WHAT IT IS -->
+  <section class="what" id="what">
+    <p class="section-label">产品是什么</p>
+    <h2 class="section-title">不只是写一本回忆录</h2>
+    <p class="section-body">
+      传家宝帮你把自己的故事讲出来——你的童年、你的选择、你经历过的转折。<br><br>
+      AI从你的叙述里，提取你家族世代相传的天赋模式和局限模式，生成只属于你的<strong>家脉图</strong>——让你第一次看清自己从哪里来。<br><br>
+      同时，AI会引导你去采访家人，让家脉图越来越完整。<br>这是你理解自己最深的那把钥匙。
+    </p>
+  </section>
+
+  <!-- OUTPUT CARDS -->
+  <div class="outputs">
+    <div class="output-card gene">
+      <div class="output-card-deco" aria-hidden="true">脉</div>
+      <span class="output-tag">家脉图</span>
+      <h3 class="output-title">你理解自己最深的那把钥匙</h3>
+      <p class="output-desc">
+        从你的故事里提取世代共有的天赋特征，<br>
+        看见家族的局限模式在哪里，<br>
+        以及这些，如何活在你身上。<br><br>
+        很多人说，第一次读完家脉图，才明白自己为什么总走那条路——那一刻，他们感到一种深深的被理解。
+      </p>
+    </div>
+
+    <div class="output-card">
+      <div class="output-card-deco" aria-hidden="true">册</div>
+      <span class="output-tag">个人回忆录</span>
+      <h3 class="output-title">你的故事，留成一本书</h3>
+      <p class="output-desc">
+        语音讲述，AI整理，生成精装个人回忆录。<br>
+        你的童年、你的爱情、你的人生转折……<br>
+        一段一段，都有了归处。
+      </p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how" id="how">
+    <div class="how-deco" aria-hidden="true">问</div>
+    <p class="section-label">怎么用</p>
+    <h2 class="section-title">你来讲述，<br>我来解读</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">一</div>
+        <div class="step-content">
+          <h3 class="step-title">选一个人生板块，打开录音说</h3>
+          <p class="step-desc">147个问题分成21个板块。选一个你最想聊的，打开录音，像跟朋友倾诉一样说。不用背问题，不用准备。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">二</div>
+        <div class="step-content">
+          <h3 class="step-title">翻牌聊，全程录音</h3>
+          <p class="step-desc">卡片在屏幕上一张张翻，下面一直在录。想说哪张说哪张，跳过也行。说完关掉就好，不用发文件，不用做任何事。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">三</div>
+        <div class="step-content">
+          <h3 class="step-title">家脉图生成，你的来处清晰了</h3>
+          <p class="step-desc">三次录音后，AI从你的故事里提取家族模式，生成你的家脉图和个人回忆录。你也会收到提示：去采访哪位家人，能让家脉图更完整。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- STORY SAMPLE -->
+  <section class="story">
+    <div class="story-deco" aria-hidden="true">忆</div>
+    <p class="section-label">真实故事</p>
+    <h2 class="section-title">那些从来没被说出口的话</h2>
+
+    <p class="section-body" style="margin-bottom:20px;">
+      她说爸爸从小对她严格。他自己考98分，他爸会问他：剩下两分去哪了。他从来没有肯定过她。<br><br>
+      我问她：如果爸爸被采访，说了肯定你的话，你会怎样？
+    </p>
+    <div class="story-card">
+      <p class="story-quote">
+        「我会把这段录音收藏下来，反复听。」
+      </p>
+      <p class="story-source">— 女儿，讲述她和父亲的故事时</p>
+    </div>
+    <div class="gene-sample">
+      <p class="gene-label">家脉图 · AI提取</p>
+      <p class="gene-text">
+        <strong>世代局限：</strong>高标准背后，是从未被肯定的一代人，用他们唯一会的方式在爱。<br><br>
+        那段话，她一直在等。她只是不知道怎么开口问。<br><br>
+        <strong>对你的启示：</strong>你对"肯定"的渴望，不是软弱，是世代积累的未完成。你可以在你这代完成它。
+      </p>
+    </div>
+
+    <div style="margin-top:40px;">
+      <h3 class="section-title" style="font-size:20px;margin-bottom:12px;">「全世界没有人<br>敢说第二。」</h3>
+      <div class="story-card">
+        <p class="story-quote">
+          「我在这个领域，如果说第一，全世界没有人敢说第二。」
+        </p>
+        <p class="story-source">— 外公，关于他研究日晷的30年</p>
+      </div>
+      <div class="gene-sample">
+        <p class="gene-label">家脉图 · AI提取</p>
+        <p class="gene-text">
+          <strong>世代天赋：</strong>在没有外部认可的情况下，长期专注于一件事。<br><br>
+          外公独自研究日晷30年，你对一些小众领域的执着，可能来源于此。<br><br>
+          <strong>给你的话：</strong>你的"独立"不是反叛，是基因。顺势而为。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- PRICING -->
+  <section class="pricing">
+    <p class="section-label">探索方案</p>
+    <h2 class="section-title">先体验，<br>满意再深入</h2>
+
+    <div class="price-card">
+      <div class="price-tag-row">
+        <span class="price-amount">免费</span>
+      </div>
+      <p class="price-name">邀请制内测</p>
+      <ul class="price-list">
+        <li>完整参与3个板块探索</li>
+        <li>生成个人回忆录草稿</li>
+        <li>家脉图基础版报告</li>
+        <li>专属探索框架指导</li>
+      </ul>
+      <button class="btn btn-ghost" onclick="location.href='interview.html'">
+        申请加入内测
+      </button>
+    </div>
+
+    <div class="price-card featured" style="margin-top:16px">
+      <div class="price-tag-row">
+        <span class="price-amount">¥980</span>
+        <span class="price-unit">/ 人</span>
+      </div>
+      <p class="price-name">个人完整版（正式上线后）</p>
+      <ul class="price-list">
+        <li>无限板块探索</li>
+        <li>完整个人回忆录（精装PDF）</li>
+        <li>家脉图完整报告</li>
+        <li>每月家族洞察推送</li>
+        <li>生日纪念定制生成</li>
+      </ul>
+      <button class="btn-primary-dark">
+        正式上线提醒我
+      </button>
+    </div>
+
+    <div class="price-card" style="margin-top:16px">
+      <div class="price-tag-row">
+        <span class="price-amount">¥8800</span>
+      </div>
+      <p class="price-name">全家桶（本人 + 最多5位家人）</p>
+      <ul class="price-list">
+        <li>本人完整探索 + 最多5位家人采访</li>
+        <li>多代际完整家脉图</li>
+        <li>7–10次结构化访谈陪伴</li>
+        <li>AI全程整理，精装成册交付</li>
+      </ul>
+      <button class="btn btn-ghost" onclick="location.href='https://weixin.qq.com'" style="font-size:14px;">
+        了解全家桶方案
+      </button>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta" id="cta">
+    <div class="final-cta-deco" aria-hidden="true">传</div>
+    <h2 class="final-cta-title">
+      你身上有哪些模式，<br>是时候看见了？
+    </h2>
+    <p class="final-cta-sub">
+      邀请制内测，加入后发给你第一张探索牌。<br><br>
+      当你开始讲述，家族的脉络就开始浮现。
+    </p>
+    <div class="final-cta-actions">
+      <a href="interview.html" class="btn btn-primary">
+        申请加入内测，开始探索
+      </a>
+      <p style="font-size:12px;color:var(--ink-3);text-align:center;margin-top:4px;">
+        目前仅开放微信联系 · 扫码或搜索「传家宝内测」
+      </p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p class="footer-logo">传家宝</p>
+    <p class="footer-tagline">Your story. Your roots. Your map.</p>
+    <nav class="footer-links" aria-label="页脚导航">
+      <a href="#">关于我们</a>
+      <a href="#">访谈框架</a>
+      <a href="#">隐私政策</a>
+      <a href="#">联系我们</a>
+    </nav>
+    <p class="footer-copy">© 2026 传家宝 Heirloom · 让每个人都能看见自己的来处</p>
+    <p style="margin-top:12px;font-size:12px;color:var(--ink-3);letter-spacing:0.04em;">WeChat: gaoqiantongxue</p>
+  </footer>
+
+</body>
+</html>

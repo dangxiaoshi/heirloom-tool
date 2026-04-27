@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>传家宝 · 家脉探索</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F5F0E8; --surface: #FBF8F3; --surface-2: #EDE8DF;
+      --ink: #1C1714; --ink-2: #5C5248; --ink-3: #9C9088;
+      --accent: #8B5E3C; --gold: #9B6F28; --green: #4A5940;
+      --serif: 'Noto Serif SC', serif; --sans: 'Noto Sans SC', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-weight: 300;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ── Layout: full screen, three rows ── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 430px;
+      margin: 0 auto;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 56px;
+      border-bottom: 1px solid rgba(28,23,20,0.06);
+      background: rgba(245,240,232,0.95);
+      backdrop-filter: blur(8px);
+    }
+    .topbar-info { display: flex; flex-direction: column; }
+    .topbar-name { font-family: var(--serif); font-size: 16px; font-weight: 400; color: var(--ink); }
+    .topbar-module { font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; margin-top: 1px; }
+    .topbar-btn {
+      background: none; border: none; cursor: pointer; padding: 8px;
+      color: var(--ink-3); font-size: 13px; min-height: 44px; min-width: 44px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; transition: color 0.2s, background 0.2s;
+    }
+    .topbar-btn:hover { color: var(--accent); background: rgba(139,94,60,0.06); }
+
+    /* ── Chat scroll area ── */
+    .chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Bubbles ── */
+    .bubble-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      animation: fadeUp 0.3s ease-out;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .bubble-row.ai { align-self: flex-start; max-width: 88%; }
+    .bubble-row.user { align-self: flex-end; flex-direction: row-reverse; max-width: 88%; }
+
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-family: var(--serif); font-weight: 400;
+    }
+    .avatar.ai-av { background: var(--accent); color: #FBF8F3; font-size: 12px; }
+    .avatar.user-av { background: var(--surface-2); color: var(--ink-2); font-size: 12px; }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.75;
+      max-width: 100%;
+    }
+
+    /* AI bubble: question card */
+    .bubble.ai {
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 4px 16px 16px 16px;
+      border-left: 2px solid var(--accent);
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 16px;
+    }
+
+    /* AI system/hint bubble */
+    .bubble.hint {
+      background: transparent;
+      color: var(--ink-3);
+      font-size: 13px;
+      font-family: var(--sans);
+      padding: 4px 8px;
+      line-height: 1.6;
+    }
+
+    /* User bubble: elder's answer */
+    .bubble.user {
+      background: rgba(139,94,60,0.1);
+      color: var(--ink);
+      border-radius: 16px 4px 16px 16px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    /* Thinking indicator */
+    .thinking {
+      display: flex; gap: 5px; align-items: center;
+      padding: 14px 18px;
+      background: var(--surface);
+      border-radius: 4px 16px 16px 16px;
+      border-left: 2px solid var(--accent);
+    }
+    .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); opacity: 0.4;
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── Bottom bar ── */
+    .bottom {
+      flex-shrink: 0;
+      padding: 16px 20px 32px;
+      background: var(--bg);
+      border-top: 1px solid rgba(28,23,20,0.06);
+    }
+
+    /* Status text above button */
+    .record-status {
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-3);
+      margin-bottom: 14px;
+      min-height: 20px;
+      transition: color 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .record-status.active { color: var(--accent); }
+    .record-status.thinking { color: var(--gold); }
+
+    /* Record button */
+    .record-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .record-btn {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      transition: transform 0.15s ease-out, background-color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 4px 16px rgba(139,94,60,0.3);
+    }
+    .record-btn:active { transform: scale(0.94); }
+    .record-btn.recording { background: #8B3A3A; box-shadow: 0 4px 20px rgba(139,58,58,0.4); }
+    .record-btn.disabled { background: var(--surface-2); box-shadow: none; cursor: not-allowed; }
+
+    .record-btn svg { width: 28px; height: 28px; fill: #FBF8F3; transition: all 0.2s; }
+
+    /* Pulse ring when recording */
+    .record-btn::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .record-btn.recording::before {
+      opacity: 0.4;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.4; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+
+    /* Side buttons */
+    .side-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--surface);
+      border: 1.5px solid var(--surface-2);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .side-btn:hover { background: var(--surface-2); }
+    .side-btn svg { width: 18px; height: 18px; fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-linecap: round; }
+
+    /* ── Setup screen ── */
+    .setup-screen {
+      flex: 1; display: flex; flex-direction: column;
+      justify-content: center; padding: 32px 24px;
+      gap: 24px;
+    }
+
+    .setup-title { font-family: var(--serif); font-size: 24px; font-weight: 400; color: var(--ink); text-wrap: balance; }
+    .setup-sub { font-size: 14px; color: var(--ink-2); line-height: 1.7; }
+
+    .field label { display: block; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%; padding: 12px 16px; border: 1.5px solid var(--surface-2);
+      border-radius: 10px; background: var(--surface); color: var(--ink);
+      font-family: var(--sans); font-size: 15px; font-weight: 300;
+      transition: border-color 0.2s; appearance: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); outline: none; }
+    .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239C9088' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; background-color: var(--surface); padding-right: 40px; }
+
+    .start-btn {
+      width: 100%; min-height: 52px;
+      background: var(--accent); color: #FBF8F3;
+      border: none; border-radius: 9999px;
+      font-family: var(--sans); font-size: 16px; font-weight: 400;
+      cursor: pointer; letter-spacing: 0.02em;
+      transition: background-color 0.2s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active { transform: scale(0.98); }
+    .start-btn:hover { background: #7A5234; }
+
+    /* ── Transcript badge under user bubble ── */
+    .transcript-raw {
+      font-size: 12px; color: var(--ink-3);
+      padding: 0 8px; margin-top: -8px;
+      text-align: right; line-height: 1.5;
+      display: none;
+    }
+
+    /* ── Waveform (fake) ── */
+    .waveform {
+      display: flex; align-items: center; justify-content: center;
+      gap: 3px; height: 24px; margin-bottom: 8px; opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .waveform.active { opacity: 1; }
+    .wave-bar {
+      width: 3px; background: var(--accent); border-radius: 2px;
+      animation: wave 0.8s ease-in-out infinite alternate;
+    }
+    .wave-bar:nth-child(1) { animation-delay: 0s; }
+    .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(6) { animation-delay: 0.05s; }
+    .wave-bar:nth-child(7) { animation-delay: 0.25s; }
+    @keyframes wave {
+      from { height: 4px; opacity: 0.4; }
+      to   { height: 20px; opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ── SETUP SCREEN ── -->
+  <div class="setup-screen" id="setupScreen">
+    <div>
+      <p style="font-family:var(--serif);font-size:13px;color:var(--ink-3);letter-spacing:0.08em;margin-bottom:12px;">传家宝 · 家脉探索</p>
+      <h1 class="setup-title">开始之前，告诉我你是谁</h1>
+      <p class="setup-sub" style="margin-top:10px;">AI会陪你把自己的故事说出来，从中找到你家族世代流传的脉络。</p>
+    </div>
+
+    <div class="field">
+      <label>你的名字</label>
+      <input type="text" id="elderName" placeholder="如：晓红、小美" maxlength="10">
+    </div>
+
+    <div class="field">
+      <label>选择探索板块</label>
+      <select id="moduleSelect">
+        <optgroup label="时间维度">
+          <option value="童年的家">板块01 · 童年的家</option>
+          <option value="读书与成长">板块02 · 读书与成长</option>
+          <option value="青年与选择">板块03 · 青年与选择</option>
+          <option value="爱情那一章">板块04 · 爱情那一章</option>
+          <option value="为人父母">板块05 · 为人父母</option>
+          <option value="中年的重量">板块06 · 中年的重量</option>
+          <option value="现在的你">板块07 · 现在的你</option>
+        </optgroup>
+        <optgroup label="故事线维度">
+          <option value="一次出发">板块15 · 一次出发</option>
+          <option value="一次转折">板块16 · 一次转折</option>
+          <option value="一件骄傲的事">板块19 · 一件骄傲的事</option>
+          <option value="给后代的话">板块21 · 给后代的话</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <button class="start-btn" id="startBtn">开始我的家脉探索</button>
+  </div>
+
+  <!-- ── CHAT SCREEN (hidden initially) ── -->
+  <div id="chatScreen" style="display:none;flex-direction:column;height:100%;flex:1;">
+
+    <div class="topbar">
+      <div class="topbar-info">
+        <span class="topbar-name" id="topbarName">—</span>
+        <span class="topbar-module" id="topbarModule">—</span>
+      </div>
+      <button class="topbar-btn" id="endBtn" title="完成探索，生成家脉图">
+        完成
+      </button>
+    </div>
+
+    <div class="chat" id="chat"></div>
+
+    <div class="bottom">
+      <div class="waveform" id="waveform">
+        <div class="wave-bar" style="height:8px"></div>
+        <div class="wave-bar" style="height:14px"></div>
+        <div class="wave-bar" style="height:18px"></div>
+        <div class="wave-bar" style="height:12px"></div>
+        <div class="wave-bar" style="height:20px"></div>
+        <div class="wave-bar" style="height:16px"></div>
+        <div class="wave-bar" style="height:10px"></div>
+      </div>
+      <div class="record-status" id="recordStatus">点击麦克风开始说话</div>
+      <div class="record-wrap">
+        <button class="side-btn" id="skipBtn" title="跳过这个问题">
+          <svg viewBox="0 0 24 24"><polyline points="5 12 19 12"/><polyline points="13 6 19 12 13 18"/></svg>
+        </button>
+        <button class="record-btn" id="recordBtn">
+          <!-- mic icon -->
+          <svg viewBox="0 0 24 24" id="micIcon"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+          <!-- stop icon (hidden) -->
+          <svg viewBox="0 0 24 24" id="stopIcon" style="display:none"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+        </button>
+        <button class="side-btn" id="replayBtn" title="重播当前问题">
+          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Result overlay -->
+<div id="resultOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;padding:32px 24px 80px;">
+  <div style="max-width:430px;margin:0 auto;">
+    <h2 style="font-family:var(--serif);font-size:22px;font-weight:400;color:var(--ink);margin-bottom:8px;">探索完成</h2>
+    <p style="font-size:13px;color:var(--ink-3);margin-bottom:28px;" id="resultMeta">—</p>
+
+    <p style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;">传家册章节</p>
+    <div id="resultChapter" style="background:var(--surface);border-radius:12px;padding:24px;font-family:var(--serif);font-size:15px;line-height:1.9;color:var(--ink);border-left:2px solid var(--gold);margin-bottom:20px;white-space:pre-wrap;"></div>
+
+    <p style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);margin-bottom:12px;">家脉图片段</p>
+    <div id="resultGene" style="background:rgba(74,89,64,0.07);border-radius:12px;padding:20px;margin-bottom:32px;font-size:14px;line-height:1.8;color:var(--ink);"></div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button onclick="copyResult()" style="min-height:48px;background:var(--accent);color:#FBF8F3;border:none;border-radius:9999px;font-family:var(--sans);font-size:15px;cursor:pointer;">复制全部内容</button>
+      <button onclick="location.reload()" style="min-height:48px;background:transparent;color:var(--accent);border:1.5px solid rgba(139,94,60,0.3);border-radius:9999px;font-family:var(--sans);font-size:15px;cursor:pointer;">再探索一次</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────
+let state = {
+  elderName: '', relation: '', module: '',
+  history: [],         // {role, content} for AI context
+  transcript: [],      // {question, answer} pairs for final generation
+  currentQuestion: '',
+  questionCount: 0,
+  isRecording: false,
+  isThinking: false,
+  mediaRecorder: null,
+  audioChunks: [],
+  stream: null,
+};
+
+// ── Setup ────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', async () => {
+  const name = document.getElementById('elderName').value.trim();
+  if (!name) {
+    const field = document.getElementById('elderName');
+    field.style.borderColor = '#8B5E3C';
+    field.placeholder = '请先填写你的名字';
+    field.focus();
+    setTimeout(() => { field.style.borderColor = ''; }, 2000);
+    return;
+  }
+  state.elderName = name;
+  state.relation  = '自己';
+  state.module    = document.getElementById('moduleSelect').value;
+
+  // 立刻切换到采访界面，不等麦克风权限
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('chatScreen').style.display = 'flex';
+  document.getElementById('topbarName').textContent = state.elderName;
+  document.getElementById('topbarModule').textContent = '探索板块 · ' + state.module;
+
+  // 获取第一个问题
+  await getFirstQuestion();
+});
+
+// ── Get first question from AI ────────────────────────────
+async function getFirstQuestion() {
+  showThinking();
+  try {
+    const res = await fetch('/api/interview-start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        elderName: state.elderName,
+        relation: state.relation,
+        module: state.module
+      })
+    });
+    const data = await res.json();
+    hideThinking();
+    if (data.question) {
+      state.currentQuestion = data.question;
+      state.history.push({ role: 'assistant', content: data.question });
+      await addBubbleTypewriter('ai', data.question, 45);
+    }
+  } catch(e) {
+    hideThinking();
+    addBubble('hint', '⚠️ 获取问题失败：' + e.message + ' — 请刷新页面重试。');
+  }
+}
+
+// ── Recording ────────────────────────────────────────────
+const recordBtn = document.getElementById('recordBtn');
+
+recordBtn.addEventListener('click', async () => {
+  if (state.isThinking) return;
+  if (!state.isRecording) startRecording();
+  else stopRecording();
+});
+
+async function startRecording() {
+  if (!state.stream) {
+    try { state.stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+    catch(e) { addBubble('hint','请允许麦克风访问权限'); return; }
+  }
+
+  state.audioChunks = [];
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus' : 'audio/mp4';
+
+  state.mediaRecorder = new MediaRecorder(state.stream, { mimeType });
+  state.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) state.audioChunks.push(e.data); };
+  state.mediaRecorder.onstop = processRecording;
+  state.mediaRecorder.start(100);
+
+  state.isRecording = true;
+  recordBtn.classList.add('recording');
+  document.getElementById('micIcon').style.display = 'none';
+  document.getElementById('stopIcon').style.display = 'block';
+  document.getElementById('waveform').classList.add('active');
+  setStatus('正在录音…点击停止', 'active');
+}
+
+function stopRecording() {
+  if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+    state.mediaRecorder.stop();
+  }
+  state.isRecording = false;
+  recordBtn.classList.remove('recording');
+  document.getElementById('micIcon').style.display = 'block';
+  document.getElementById('stopIcon').style.display = 'none';
+  document.getElementById('waveform').classList.remove('active');
+  setStatus('处理中…', 'thinking');
+  recordBtn.classList.add('disabled');
+}
+
+async function processRecording() {
+  state.isThinking = true;
+  const blob = new Blob(state.audioChunks, { type: state.mediaRecorder.mimeType });
+
+  try {
+    // ── 第一步：转录，立刻显示文字 ──────────────────────
+    setStatus('转录中…', 'thinking');
+    const audioForm = new FormData();
+    audioForm.append('audio', blob, 'recording.webm');
+    const transRes = await fetch('/api/transcribe', { method: 'POST', body: audioForm });
+    const transData = await transRes.json();
+    if (transData.error) throw new Error(transData.error);
+
+    const transcript = transData.transcript;
+    state.history.push({ role: 'user', content: transcript });
+    state.transcript.push({ question: state.currentQuestion, answer: transcript });
+    state.questionCount++;
+
+    // ── 第二步：打字机显示转录 + 同时发 AI 请求（并行）──
+    setStatus('AI 思考中…', 'thinking');
+
+    const decidePromise = fetch('/api/interview-turn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        preTranscript: transcript,
+        question: state.currentQuestion,
+        elderName: state.elderName,
+        relation: state.relation,
+        module: state.module,
+        history: JSON.stringify(state.history)
+      })
+    }).then(r => r.json());
+
+    // 打字机效果展示转录文字（速度与文字长度自适应，最快30ms/字，最慢60ms）
+    const msPerChar = Math.min(60, Math.max(30, Math.round(3000 / transcript.length)));
+    await addBubbleTypewriter('user', transcript, msPerChar);
+
+    // 等 AI 结果（打字机期间已在并行处理）
+    showThinking();
+    const data = await decidePromise;
+    if (data.error) throw new Error(data.error);
+
+    await sleep(300);
+    hideThinking();
+
+    if (data.action === 'followup' && data.question) {
+      state.currentQuestion = data.question;
+      state.history.push({ role: 'assistant', content: data.question });
+      await addBubbleTypewriter('ai', data.question, 45);
+    } else if (data.action === 'next' && data.question) {
+      if (data.summary) addBubble('hint', data.summary);
+      await sleep(300);
+      state.currentQuestion = data.question;
+      state.history.push({ role: 'assistant', content: data.question });
+      await addBubbleTypewriter('ai', data.question, 45);
+    } else if (data.action === 'complete') {
+      addBubble('hint', '这个板块的问题已经问完了。');
+      await finishInterview();
+      return;
+    }
+
+    setStatus('点击麦克风开始说话', '');
+  } catch(e) {
+    hideThinking();
+    addBubble('hint', `出错了：${e.message}`);
+    setStatus('点击麦克风开始说话', '');
+  }
+
+  state.isThinking = false;
+  recordBtn.classList.remove('disabled');
+}
+
+// ── Skip / Replay ─────────────────────────────────────────
+document.getElementById('skipBtn').addEventListener('click', async () => {
+  if (state.isThinking || state.isRecording) return;
+  addBubble('hint', '跳过了这个问题');
+  state.isThinking = true;
+  recordBtn.classList.add('disabled');
+  showThinking();
+
+  try {
+    const res = await fetch('/api/interview-next', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        elderName: state.elderName,
+        module: state.module,
+        history: state.history,
+        skipped: state.currentQuestion
+      })
+    });
+    const data = await res.json();
+    hideThinking();
+    if (data.question) {
+      state.currentQuestion = data.question;
+      state.history.push({ role: 'assistant', content: data.question });
+      addBubble('ai', data.question);
+    } else {
+      addBubble('hint', '已经问完了所有问题。');
+      await finishInterview();
+      return;
+    }
+  } catch(e) {
+    hideThinking();
+    addBubble('hint', `出错了：${e.message}`);
+  }
+  state.isThinking = false;
+  recordBtn.classList.remove('disabled');
+  setStatus('点击麦克风开始说话', '');
+});
+
+document.getElementById('replayBtn').addEventListener('click', () => {
+  if (state.currentQuestion) addBubble('hint', '↑ 重新看上面的问题');
+});
+
+// ── End button ────────────────────────────────────────────
+document.getElementById('endBtn').addEventListener('click', async () => {
+  if (state.transcript.length === 0) {
+    addBubble('hint', '还没有录制任何内容，先说几句吧。');
+    return;
+  }
+  await finishInterview();
+});
+
+async function finishInterview() {
+  addBubble('hint', '正在为你生成回忆录章节和家脉图…');
+  recordBtn.classList.add('disabled');
+  setStatus('生成中…', 'thinking');
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        transcript: state.transcript.map(t => `问：${t.question}\n答：${t.answer}`).join('\n\n'),
+        module: state.module,
+        elderName: state.elderName,
+        relation: state.relation
+      })
+    });
+    const data = await res.json();
+
+    document.getElementById('resultMeta').textContent =
+      `${state.elderName} · ${state.module} · ${state.transcript.length}段问答`;
+    document.getElementById('resultChapter').textContent = data.chapter || '';
+
+    const g = data.gene || {};
+    document.getElementById('resultGene').innerHTML =
+      `<p style="font-size:12px;letter-spacing:0.08em;color:var(--green);margin-bottom:12px;">AI提取 · 家族基因信号</p>` +
+      (g.talent ? `<p style="margin-bottom:10px;"><span style="font-size:12px;color:var(--green);opacity:0.8">世代天赋</span><br>${g.talent}</p>` : '') +
+      (g.limit  ? `<p style="margin-bottom:10px;"><span style="font-size:12px;color:var(--green);opacity:0.8">家族局限</span><br>${g.limit}</p>` : '') +
+      (g.connection ? `<p><span style="font-size:12px;color:var(--green);opacity:0.8">对你的启示</span><br>${g.connection}</p>` : '');
+
+    document.getElementById('resultOverlay').style.display = 'block';
+    document.getElementById('resultOverlay').scrollTop = 0;
+  } catch(e) {
+    addBubble('hint', `生成失败：${e.message}`);
+    recordBtn.classList.remove('disabled');
+    setStatus('点击麦克风开始说话', '');
+  }
+}
+
+function copyResult() {
+  const chapter = document.getElementById('resultChapter').textContent;
+  const gene = document.getElementById('resultGene').innerText;
+  navigator.clipboard.writeText(
+    `【个人回忆录 · ${state.elderName} · ${state.module}】\n\n${chapter}\n\n---\n\n【家脉图片段】\n${gene}`
+  ).then(() => {
+    const btn = event.target;
+    btn.textContent = '已复制 ✓';
+    setTimeout(() => btn.textContent = '复制全部内容', 2000);
+  });
+}
+
+// ── UI helpers ────────────────────────────────────────────
+let thinkingEl = null;
+
+function addBubble(type, text) {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = `bubble-row ${type === 'user' ? 'user' : 'ai'}`;
+
+  if (type === 'hint') {
+    row.innerHTML = `<div class="bubble hint">${text}</div>`;
+  } else if (type === 'ai') {
+    row.innerHTML = `
+      <div class="avatar ai-av">传</div>
+      <div class="bubble ai">${text}</div>`;
+  } else {
+    row.innerHTML = `
+      <div class="bubble user">${text}</div>
+      <div class="avatar user-av">${state.elderName ? state.elderName[0] : '长'}</div>`;
+  }
+
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showThinking() {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = 'bubble-row ai';
+  row.id = 'thinkingRow';
+  row.innerHTML = `<div class="avatar ai-av">传</div><div class="thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function hideThinking() {
+  const el = document.getElementById('thinkingRow');
+  if (el) el.remove();
+}
+
+function setStatus(text, cls) {
+  const el = document.getElementById('recordStatus');
+  el.textContent = text;
+  el.className = 'record-status' + (cls ? ` ${cls}` : '');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// 打字机效果：逐字显示气泡，返回 Promise，同时可以做别的事
+function addBubbleTypewriter(type, text, msPerChar = 40) {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = `bubble-row ${type === 'user' ? 'user' : 'ai'}`;
+
+  let bubbleEl;
+  if (type === 'ai') {
+    row.innerHTML = `<div class="avatar ai-av">传</div><div class="bubble ai"></div>`;
+    bubbleEl = row.querySelector('.bubble');
+  } else {
+    row.innerHTML = `<div class="bubble user"></div><div class="avatar user-av">${state.elderName ? state.elderName[0] : '长'}</div>`;
+    bubbleEl = row.querySelector('.bubble');
+  }
+  chat.appendChild(row);
+
+  return new Promise(resolve => {
+    let i = 0;
+    function tick() {
+      if (i < text.length) {
+        bubbleEl.textContent += text[i++];
+        chat.scrollTop = chat.scrollHeight;
+        setTimeout(tick, msPerChar);
+      } else {
+        resolve();
+      }
+    }
+    tick();
+  });
+}
+</script>
+</body>
+</html>
