@@ -237,16 +237,29 @@ app.post('/api/transcribe', audioLimiters, upload.single('audio'), async (req, r
 
 // ── 路由 2：采访开始 — 获取第一个问题 ────────────────────
 app.post('/api/interview-start', async (req, res) => {
-  const { elderName, relation, module: mod } = req.body;
+  const { elderName, relation, module: mod, questionBank } = req.body;
+  const isSelf = relation === '自己';
+  const bank = Array.isArray(questionBank) ? questionBank.filter(Boolean) : [];
+  const bankText = bank.length ? bank.map((q, i) => `${i + 1}. ${q}`).join('\n') : '';
 
-  const systemPrompt = `你在帮${relation || '子女'}采访${elderName || '长辈'}，板块是「${mod}」。
+  const persona = isSelf
+    ? `这是${elderName || '本人'}在回顾自己的人生，板块是「${mod}」。你用「你」称呼对方，语气像一个温和、好奇、不评判的朋友。`
+    : `你在帮${relation || '子女'}采访${elderName || '长辈'}，板块是「${mod}」。你用「您」称呼对方。`;
+
+  const ask = bankText
+    ? `下面是这个板块的问题库，请直接把第 1 题问出来（可以稍微口语化一点，但不要改变它问的核心事实），不超过40字，不要任何前缀：\n${bankText}`
+    : `请生成这个板块最好的开场问题（不超过35字，直接问，不要前缀）。`;
+
+  const systemPrompt = `${persona}
 
 好问题的标准：
-- 从具体场景切入，不问抽象感受（"家里的灶台是什么样的" 好过 "那时候感情如何"）
+- 从具体的人、事、地点、时间、物件切入，不问抽象感受
 - 一次只问一件事，不要复合问题
 - 让人觉得"这个我能说，我想说"
 
-请生成这个板块最好的开场问题（不超过35字，直接问，不要前缀）。`;
+铁律：不要把对方的话升华成"成长/觉知/共振/疗愈/能量"这类词，永远用大白话。
+
+${ask}`;
 
   try {
     const question = await callQwen(
@@ -261,8 +274,13 @@ app.post('/api/interview-start', async (req, res) => {
 
 // ── 路由 3：采访轮次 — 转录 + 决定追问还是下一题 ────────
 app.post('/api/interview-turn', limitOnlyMultipartAudio, upload.single('audio'), async (req, res) => {
-  const { question, elderName, relation, module: mod, history: historyRaw } = req.body;
+  const { question, elderName, relation, module: mod, history: historyRaw, questionBank } = req.body;
   const history = JSON.parse(historyRaw || '[]');
+  const isSelf = relation === '自己';
+  const bankArr = Array.isArray(questionBank)
+    ? questionBank.filter(Boolean)
+    : (() => { try { return JSON.parse(questionBank || '[]'); } catch { return []; } })();
+  const bankText = bankArr.length ? bankArr.map((q, i) => `${i + 1}. ${q}`).join('\n') : '';
 
   let transcript = req.body.preTranscript || '';
   if (!transcript && req.file) {
@@ -300,27 +318,41 @@ app.post('/api/interview-turn', limitOnlyMultipartAudio, upload.single('audio'),
   }
 
   // 决定：追问 or 下一题 or 完成
-  const systemPrompt = `你是传家宝的AI采访师，正在采访「${mod}」板块，采访对象是${elderName}（${relation}的长辈）。
+  const persona = isSelf
+    ? `你是传家宝的家脉访谈师，正在陪${elderName}回顾自己的人生，板块「${mod}」。用「你」称呼对方，语气温和、好奇、不评判。`
+    : `你是传家宝的AI采访师，正在采访「${mod}」板块，采访对象是${elderName}（${relation}的长辈）。用「您」称呼。`;
 
-规则：
+  const bankRule = bankText
+    ? `这个板块的问题库如下（按编号顺序问）：
+${bankText}
+
+怎么决定下一步：
+- 看上面的对话历史，判断问题库里哪些已经问过了。默认问下一道"还没问过"的题（action: next），可以稍微口语化但不要改掉它问的核心事实。
+- 只有当对方刚刚说到一个具体、有故事的细节、值得顺着挖一句时，才追问（action: followup）；追问完，下一轮回到问题库。
+- 问题库里的题都问完了，返回 {"action":"complete","summary":"..."}。`
+    : `规则：
 - 默认直接进入下一个问题（action: next）
-- 只有一种情况追问：长辈提到了某个有趣/具体/意外的细节，顺着那个细节多问一句
-  好的追问举例："爬的是什么树？" "那条沟渠有多宽？" "后来怎样了？" "是哪一年的事？"
-- 一次只问一件事，禁止复合问题
-- 问题要让人自然想接着说，问具体的事物、地点、人物、时间
+- 只有一种情况追问：对方提到了某个有趣/具体/意外的细节，顺着那个细节多问一句
+- 超过8轮或话题充分了，返回 {"action":"complete","summary":"..."}`;
 
-【硬性禁止——违反这条直接判为质量不合格】：
-问题里绝对不能包含：心情、感觉、感受、感想、体会、想法、心里、内心、情感、情绪、心态
+  const systemPrompt = `${persona}
+
+${bankRule}
+
+- 一次只问一件事，禁止复合问题
+- 问具体的事物、地点、人物、时间，让人自然想接着说
+- 不要把回答升华成"成长/觉知/共振/疗愈/能量"这类词
+
+【硬性禁止——违反直接判不合格】：
+问题里绝对不能包含：心情、感觉、感受、感想、体会、想法、心里、内心、情感、情绪、心态。
 改成问事实："那条沟渠在哪？" 而不是 "看到沟渠是什么心情？"
 
 返回 JSON（不要有其他文字）：
 {
-  "action": "followup" 或 "next",
-  "question": "下一个问题或追问（不超过35字，直接问，不要前缀）",
+  "action": "followup" 或 "next" 或 "complete",
+  "question": "下一个问题或追问（不超过40字，直接问，不要前缀）",
   "summary": "这段回答的一句话精华（用于传家册，15字以内）"
-}
-
-超过5轮或话题充分了，返回 {"action":"complete","summary":"..."}`;
+}`;
 
   try {
     const contextMessages = [
@@ -352,13 +384,24 @@ app.post('/api/interview-turn', limitOnlyMultipartAudio, upload.single('audio'),
 
 // ── 路由 4：跳过，获取下一题 ──────────────────────────────
 app.post('/api/interview-next', async (req, res) => {
-  const { elderName, module: mod, history, skipped } = req.body;
+  const { elderName, relation, module: mod, history, skipped, questionBank } = req.body;
+  const isSelf = relation === '自己';
+  const you = isSelf ? '你' : '您';
+  const bankArr = Array.isArray(questionBank) ? questionBank.filter(Boolean) : [];
+  const bankText = bankArr.length ? bankArr.map((q, i) => `${i + 1}. ${q}`).join('\n') : '';
 
-  const systemPrompt = `你是传家宝采访师。当前板块「${mod}」，刚才的问题被跳过了。
+  const bankRule = bankText
+    ? `这个板块的问题库：
+${bankText}
 
-请生成这个板块下一个好问题（不超过40字，直接问，不同于跳过的问题：${skipped}）。
-如果板块已经充分探讨（超过5个问题），返回 JSON：{"question": null}
-否则返回：{"question": "问题内容"}`;
+看对话历史，跳过刚才那题（${skipped}），从问题库里挑下一道还没问过的题问出来（可稍微口语化，不超过40字，不要前缀）。问题库都问完了返回 {"question": null}。`
+    : `请生成这个板块下一个好问题（不超过40字，直接问，用「${you}」称呼，不同于跳过的问题：${skipped}）。板块充分探讨过了返回 {"question": null}。`;
+
+  const systemPrompt = `你是传家宝家脉访谈师，当前板块「${mod}」，刚才的问题被跳过了。
+
+${bankRule}
+
+不要问"心情/感觉/感受"，只问具体的人事地物时间。返回 JSON：{"question": "问题内容"} 或 {"question": null}`;
 
   try {
     const raw = await callQwen(
