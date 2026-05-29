@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>传家宝工具台</title>
+  <script>
+    window.API_BASE = new URLSearchParams(location.search).get('api') || window.API_BASE || '';
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
@@ -291,7 +294,7 @@
     form.append('audio', selectedFile);
 
     try {
-      const res = await fetch('/api/transcribe', { method: 'POST', body: form });
+      const res = await fetch(window.API_BASE + '/api/transcribe', { method: 'POST', body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
@@ -314,7 +317,7 @@
     $('generateBtn').disabled = true;
 
     try {
-      const res = await fetch('/api/generate', {
+      const res = await fetch(window.API_BASE + '/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

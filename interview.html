@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>传家宝 · 采访</title>
+  <script>
+    window.API_BASE = new URLSearchParams(location.search).get('api') || window.API_BASE || '';
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
@@ -448,7 +451,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
 async function getFirstQuestion() {
   showThinking();
   try {
-    const res = await fetch('/api/interview-start', {
+    const res = await fetch(window.API_BASE + '/api/interview-start', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -524,7 +527,7 @@ async function processRecording() {
     setStatus('转录中…', 'thinking');
     const audioForm = new FormData();
     audioForm.append('audio', blob, 'recording.webm');
-    const transRes = await fetch('/api/transcribe', { method: 'POST', body: audioForm });
+    const transRes = await fetch(window.API_BASE + '/api/transcribe', { method: 'POST', body: audioForm });
     const transData = await transRes.json();
     if (transData.error) throw new Error(transData.error);
 
@@ -536,7 +539,7 @@ async function processRecording() {
     // ── 第二步：打字机显示转录 + 同时发 AI 请求（并行）──
     setStatus('AI 思考中…', 'thinking');
 
-    const decidePromise = fetch('/api/interview-turn', {
+    const decidePromise = fetch(window.API_BASE + '/api/interview-turn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -597,7 +600,7 @@ document.getElementById('skipBtn').addEventListener('click', async () => {
   showThinking();
 
   try {
-    const res = await fetch('/api/interview-next', {
+    const res = await fetch(window.API_BASE + '/api/interview-next', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -646,7 +649,7 @@ async function finishInterview() {
   setStatus('生成中…', 'thinking');
 
   try {
-    const res = await fetch('/api/generate', {
+    const res = await fetch(window.API_BASE + '/api/generate', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({

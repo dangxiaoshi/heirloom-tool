@@ -7,3 +7,7 @@ uploads/
 *.wav
 *.webm
 bun.lock
+.gstack/
+.env.local
+data/
+apps/

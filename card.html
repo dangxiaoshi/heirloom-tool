@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>传家宝 · 问题卡</title>
+<script>
+window.API_BASE = new URLSearchParams(location.search).get('api') || window.API_BASE || '';
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
@@ -1502,7 +1505,7 @@ async function uploadCard(cardId, chunkList, mimeType) {
   form.append('cardId', String(cardId));
 
   try {
-    const res = await fetch('/api/transcribe', { method: 'POST', body: form });
+    const res = await fetch(window.API_BASE + '/api/transcribe', { method: 'POST', body: form });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || '上传失败');
 
@@ -1564,7 +1567,7 @@ async function submitContact() {
   feedback.className = 'thanks-feedback';
 
   try {
-    const res = await fetch('/api/contact', {
+    const res = await fetch(window.API_BASE + '/api/contact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -3,9 +3,11 @@ const express = require('express');
 const multer  = require('multer');
 const fs      = require('fs');
 const path    = require('path');
+const OSS     = require('ali-oss');
+const { rateLimit } = require('express-rate-limit');
 
 const app  = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const KEY  = process.env.DASHSCOPE_API_KEY;
 
 // ── 数据目录 ──────────────────────────────────────────────
@@ -14,67 +16,36 @@ const AUDIO_DIR      = path.join(DATA_DIR, 'audio');
 const TRANSCRIPTS_FILE = path.join(DATA_DIR, 'transcripts.jsonl');
 const CONTACTS_FILE  = path.join(DATA_DIR, 'contacts.jsonl');
 fs.mkdirSync(AUDIO_DIR, { recursive: true });
+fs.mkdirSync(path.join(__dirname, 'uploads'), { recursive: true });
 
 function appendJsonl(file, obj) {
   fs.appendFileSync(file, JSON.stringify(obj) + '\n', 'utf8');
 }
 
-// ── Obsidian 路径（在 .env 里设置 OBSIDIAN_NOTES_DIR 可覆盖）─
-const OBSIDIAN_DIR = process.env.OBSIDIAN_NOTES_DIR || path.join(
-  process.env.HOME,
-  'Library/Mobile Documents/com~apple~CloudDocs/Documents/obsidian/dangxiaoshi/项目/紫花海/传家宝/采访记录'
-);
-
 // 当前 session 的转录内容（单用户内测足够）
 let sessionTranscripts = [];
 
-function writeObsidianNote(personName, contact, transcripts) {
-  try {
-    fs.mkdirSync(OBSIDIAN_DIR, { recursive: true });
-    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const safeName = (personName || '未知').replace(/[/\\:*?"<>|]/g, '');
-    const fileName = `采访记录_${safeName}_${date}.md`;
-    const filePath = path.join(OBSIDIAN_DIR, fileName);
-
-    const lines = [
-      '---',
-      `title: 采访记录 · ${personName || '未知'} · ${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`,
-      `date: ${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`,
-      'tags:',
-      '  - 传家宝',
-      '  - 采访记录',
-      '---',
-      '',
-      `# 采访记录 · ${personName || '未知'}`,
-      '',
-      `**联系方式**：${contact}  `,
-      `**卡片数**：${transcripts.length} 张  `,
-      `**记录时间**：${new Date().toLocaleString('zh-CN')}`,
-      '',
-      '---',
-      '',
-    ];
-
-    for (const t of transcripts) {
-      lines.push(`## 卡片 ${t.cardId}`);
-      lines.push('');
-      lines.push(t.transcript);
-      lines.push('');
-      lines.push('---');
-      lines.push('');
-    }
-
-    fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
-    console.log('✅ Obsidian 笔记已写入:', fileName);
-  } catch (e) {
-    console.error('写入 Obsidian 失败:', e.message);
-  }
-}
-
 if (!KEY) {
   console.error('\n❌  缺少 DASHSCOPE_API_KEY');
-  console.error('   在 Railway 控制台设置环境变量 DASHSCOPE_API_KEY\n');
+  console.error('   请在 .env 或服务器环境变量里设置 DASHSCOPE_API_KEY\n');
   process.exit(1);
+}
+
+const ossReady = Boolean(
+  process.env.OSS_ACCESS_KEY_ID &&
+  process.env.OSS_ACCESS_KEY_SECRET &&
+  process.env.OSS_BUCKET &&
+  process.env.OSS_REGION
+);
+const ossClient = ossReady ? new OSS({
+  region: process.env.OSS_REGION,
+  accessKeyId: process.env.OSS_ACCESS_KEY_ID,
+  accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
+  bucket: process.env.OSS_BUCKET,
+}) : null;
+
+if (!ossReady) {
+  console.warn('⚠️  OSS 未配置，音频会临时保存到本地 data/audio。');
 }
 
 // ── 文件上传：保存到 uploads/ ──────────────────────────────
@@ -88,7 +59,38 @@ const upload = multer({
 });
 
 app.use(express.json());
+app.set('trust proxy', 1);
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 app.use(express.static(__dirname)); // 提供 index.html
+
+const minuteAudioLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: Number(process.env.RATE_LIMIT_PER_MINUTE || 5),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '录音太频繁了，请稍后再试' },
+});
+
+const dailyAudioLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  limit: Number(process.env.RATE_LIMIT_PER_DAY || 50),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '今日录音次数已用完，请明日继续' },
+});
+
+const audioLimiters = [minuteAudioLimiter, dailyAudioLimiter];
+
+function limitOnlyMultipartAudio(req, res, next) {
+  if (!req.is('multipart/form-data')) return next();
+  return minuteAudioLimiter(req, res, () => dailyAudioLimiter(req, res, next));
+}
 
 // ── 工具函数 ──────────────────────────────────────────────
 async function callDashScope(body) {
@@ -138,8 +140,51 @@ async function callQwen(messages, systemPrompt) {
   return data.choices[0].message.content;
 }
 
+function safeFilePart(value) {
+  return String(value || '').trim().replace(/[/\\:*?"<>|\s]+/g, '_').slice(0, 60);
+}
+
+async function saveAudioFile(file, sessionName, cardId) {
+  const audioExt = path.extname(file.originalname) || '.webm';
+  const safeSession = safeFilePart(sessionName);
+  const audioName = `${safeSession ? safeSession + '_' : ''}card${cardId || 'unknown'}_${Date.now()}${audioExt}`;
+
+  if (ossClient) {
+    const date = new Date().toISOString().slice(0, 10);
+    const objectName = `heirloom/audio/${date}/${audioName}`;
+    await ossClient.put(objectName, file.path);
+    return objectName;
+  }
+
+  const audioDest = path.join(AUDIO_DIR, audioName);
+  fs.copyFileSync(file.path, audioDest);
+  return audioName;
+}
+
+function readJsonl(file) {
+  if (!fs.existsSync(file)) return [];
+  return fs.readFileSync(file, 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => {
+      try { return JSON.parse(line); }
+      catch { return { raw: line }; }
+    });
+}
+
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true });
+});
+
+app.get('/api/export', (req, res) => {
+  res.json({
+    transcripts: readJsonl(TRANSCRIPTS_FILE),
+    contacts: readJsonl(CONTACTS_FILE),
+  });
+});
+
 // ── 路由 1：转录音频 ──────────────────────────────────────
-app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
+app.post('/api/transcribe', audioLimiters, upload.single('audio'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: '请上传音频文件' });
 
   const filePath = req.file.path;
@@ -173,14 +218,10 @@ app.post('/api/transcribe', upload.single('audio'), async (req, res) => {
     const sessionName = req.body.personName || req.body.sessionName || '';
     const timestamp = new Date().toISOString();
 
-    // 保存音频文件
-    const audioExt = path.extname(req.file.originalname) || '.webm';
-    const audioName = `${sessionName ? sessionName + '_' : ''}card${cardId || 'unknown'}_${Date.now()}${audioExt}`;
-    const audioDest = path.join(AUDIO_DIR, audioName);
-    fs.copyFileSync(filePath, audioDest);
+    const audioFile = await saveAudioFile(req.file, sessionName, cardId);
 
     // 保存文字稿
-    appendJsonl(TRANSCRIPTS_FILE, { cardId, sessionName, transcript: text, audioFile: audioName, savedAt: timestamp });
+    appendJsonl(TRANSCRIPTS_FILE, { cardId, sessionName, transcript: text, audioFile, savedAt: timestamp });
 
     // 累积到当前 session
     sessionTranscripts.push({ cardId, transcript: text });
@@ -219,7 +260,7 @@ app.post('/api/interview-start', async (req, res) => {
 });
 
 // ── 路由 3：采访轮次 — 转录 + 决定追问还是下一题 ────────
-app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
+app.post('/api/interview-turn', limitOnlyMultipartAudio, upload.single('audio'), async (req, res) => {
   const { question, elderName, relation, module: mod, history: historyRaw } = req.body;
   const history = JSON.parse(historyRaw || '[]');
 
@@ -246,10 +287,11 @@ app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
       let raw = data?.output?.choices?.[0]?.message?.content?.[0]?.text || '';
       raw = raw.replace(/^这段音频[^，。\n]*[是：:]\s*/i, '').trim();
       transcript = raw.replace(/^['''"""]([\s\S]+)['''"""]$/, '$1').trim();
-      fs.unlink(req.file.path, () => {});
     } catch (err) {
       console.error('转录失败:', err.message);
       return res.status(500).json({ error: `转录失败：${err.message}` });
+    } finally {
+      if (req.file) fs.unlink(req.file.path, () => {});
     }
   }
 
@@ -290,6 +332,17 @@ app.post('/api/interview-turn', upload.single('audio'), async (req, res) => {
     let result;
     try { result = JSON.parse(jsonStr); }
     catch { result = { action: 'next', question: '您还有什么想说的吗？', summary: '' }; }
+
+    const timestamp = new Date().toISOString();
+    appendJsonl(TRANSCRIPTS_FILE, {
+      route: 'interview-turn',
+      module: mod || '',
+      elderName: elderName || '',
+      relation: relation || '',
+      question: question || '',
+      transcript,
+      savedAt: timestamp,
+    });
 
     res.json({ transcript, ...result });
   } catch (err) {
@@ -395,8 +448,6 @@ app.post('/api/contact', (req, res) => {
   appendJsonl(CONTACTS_FILE, entry);
   console.log('联系方式已保存:', entry);
 
-  // 自动写入 Obsidian
-  writeObsidianNote(personName, String(contact).trim(), sessionTranscripts);
   sessionTranscripts = []; // 清空，准备下一次
 
   res.json({ ok: true });
