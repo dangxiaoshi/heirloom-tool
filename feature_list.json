@@ -3,7 +3,7 @@
     "项目": "传家宝",
     "用途": "给开发窗口 AI 看的任务状态机，不是给人看的待办散文。人看的全景在 Obsidian 06_迭代日志。",
     "更新": "2026-06-20",
-    "阶段": "重写：搭新骨架 + 移植旧器官（问题库/提示词/转写管道/部署）。北极星=一次访谈→转写→AI整理章节→交付物。",
+    "阶段": "重写：搭新骨架 + 移植旧器官（问题库/提示词/转写管道/部署）。北极星=让开不了口的对话被打开→低压陪聊→转写→AI整理出动人的第一份成品（人物小传+家族线索卡+这些故事怎样塑造了我）。命理/家脉后置。",
     "状态词": {
       "not_started": "还没开始",
       "in_progress": "正在做（同一时间只允许一个）",
@@ -21,25 +21,41 @@
   "features": [
     {
       "id": "mvp-spine-confirm",
-      "title": "跟当当敲定 MVP 主线就是『一次访谈→转写→AI整理章节→出一份交付物』",
+      "title": "跟当当敲定 MVP 主线（低压陪聊→动人第一份成品），定入口和成品形态",
       "priority": "P0",
       "status": "not_started",
       "blockedBy": [],
       "requires_human": "当当",
       "definition_of_done": [
-        "确认脊梁是哪一种访谈（建议先做时光轴或家谱图，cici 案例已验证）",
-        "确认第一版交付物形态（网页章节 / 可下载 PDF）",
-        "确认先做哪条市场（银发低价 还是 自我探索高价）的前端"
+        "确认先做哪个入口（建议阻力最小的：先录自己 / 陪父母聊），不押单一采访长辈",
+        "确认第一份成品就是三层（人物小传 + 家族线索卡 + 这些故事怎样塑造了我），还是先做其中一层",
+        "确认成品形态（网页可读 / 可下载 PDF）",
+        "确认命理/家脉/多系统收敛确实后置，不进 MVP"
       ],
       "evidence": [],
-      "notes": "这是动代码前的决策闸门。当当回来确认后，再把 skeleton 转 in_progress。"
+      "notes": "动代码前的决策闸门。依据=开发日记 2026-04-18 复盘。当当确认后把 sync-from-server 或 new-skeleton 转 in_progress。"
+    },
+    {
+      "id": "sync-from-server",
+      "title": "登服务器对账：拉回最新 index.html / nginx 配置，确认线上真身",
+      "priority": "P0",
+      "status": "not_started",
+      "blockedBy": [],
+      "requires_human": "",
+      "definition_of_done": [
+        "ssh 上 /opt/heirloom，diff 线上代码 vs 本地（本地是 5/29，线上 6/03 改过 index.html）",
+        "把线上比本地新的文件（至少 index.html）拉回本地参照",
+        "记录当前 nginx(80/443→3001) + edge-proxy(8080) 配置，重写时别改坏 chuanjiabao.vip 路由"
+      ],
+      "evidence": [],
+      "notes": "只读对账，别动服务器。线上是真身，本地过时。"
     },
     {
       "id": "new-skeleton",
       "title": "搭干净新工程骨架（目录结构 / 会话状态模型 / 路由）",
       "priority": "P0",
       "status": "not_started",
-      "blockedBy": ["mvp-spine-confirm"],
+      "blockedBy": ["mvp-spine-confirm", "sync-from-server"],
       "requires_human": "",
       "definition_of_done": [
         "定结构：保持 Node+Express 单 server.js+静态页，还是引入轻框架（小项目优先前者）",
@@ -79,40 +95,42 @@
       "notes": "旧提示词已对 cici 真实案例验证出活，别推倒重写。"
     },
     {
-      "id": "one-interview-e2e",
-      "title": "跑通一种结构化访谈端到端（脊梁）",
+      "id": "one-flow-e2e",
+      "title": "跑通一条低压陪聊流程端到端（脊梁）",
       "priority": "P1",
       "status": "not_started",
       "blockedBy": ["import-questionbank", "transplant-pipeline"],
       "requires_human": "",
       "definition_of_done": [
-        "选一种访谈（建议时光轴/家谱图）：开始→按题库逐题→录音→转写→追问/下一题→完成",
-        "真浏览器真录音走完整条，产出章节故事",
-        "会话进度可保存、可续"
+        "选定入口（先录自己/陪父母）：用具体触发物切入→分次5-15分钟讲述→录音→转写→AI顺着细节轻轻往下带",
+        "措辞是『陪聊』不是『采访』；禁止问心情/感觉，只问人事地物时间（沿用旧提示词铁律）",
+        "真浏览器真录音走完整条，会话进度可保存、可续"
       ],
       "evidence": [],
-      "notes": "这条通了，其余 6 种访谈是复制粘贴+换题库。"
+      "notes": "这条通了，其余入口/访谈板块是换触发物+换题库。"
     },
     {
       "id": "delivery-output",
-      "title": "章节故事 → 一份能交付的成品",
+      "title": "讲述内容 → 第一份动人的成品（三层）",
       "priority": "P1",
       "status": "not_started",
-      "blockedBy": ["one-interview-e2e"],
+      "blockedBy": ["one-flow-e2e"],
       "requires_human": "",
       "definition_of_done": [
-        "把多段章节汇成一份完整人生故事（网页可读）",
-        "能导出/下载（参考 cici 的 PDF 交付包形态）"
+        "第①层：有情感张力的人物小传（保留长辈第一人称语气，参考 cici 交付包）",
+        "第②层：一组家族线索卡（迁徙/疾病/婚姻/金钱观/教育方式等模式）",
+        "第③层：一页『这些故事怎样塑造了我』（自我映射）",
+        "成品能在网页读、能导出（参考 Obsidian cici PDF 导出版）"
       ],
       "evidence": [],
-      "notes": "这是用户真正花钱买的东西。"
+      "notes": "这是用户真正被打动、愿意做第二轮和推荐别人的关键。第一版可先做第①层打动人，②③渐进。"
     },
     {
       "id": "deploy-new",
       "title": "新版部署到 ECS",
       "priority": "P2",
       "status": "not_started",
-      "blockedBy": ["one-interview-e2e"],
+      "blockedBy": ["one-flow-e2e"],
       "requires_human": "当当（点阿里云控制台）",
       "definition_of_done": [
         "rsync 到 /opt/heirloom，pm2 heirloom 重启，health 200",
