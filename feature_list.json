@@ -1,0 +1,147 @@
+{
+  "_meta": {
+    "项目": "传家宝",
+    "用途": "给开发窗口 AI 看的任务状态机，不是给人看的待办散文。人看的全景在 Obsidian 06_迭代日志。",
+    "更新": "2026-06-20",
+    "阶段": "重写：搭新骨架 + 移植旧器官（问题库/提示词/转写管道/部署）。北极星=一次访谈→转写→AI整理章节→交付物。",
+    "状态词": {
+      "not_started": "还没开始",
+      "in_progress": "正在做（同一时间只允许一个）",
+      "blocked": "被外部卡住（等当当拍板/等备案/人工台），别碰",
+      "passing_test": "做完并自验，等当当真账号真音频验收",
+      "done": "已上线或已得出结论，收工"
+    },
+    "两条铁律": [
+      "同一时间最多一个任务是 in_progress，禁止同时开多个坑。",
+      "没有 evidence（跑过什么命令/真账号验收结果）就不准把 status 改成 passing_test 或 done。"
+    ],
+    "挑任务规则": "优先做 in_progress；没有就挑 priority 最高且 blockedBy 为空的 not_started；任务太大先拆小再做。"
+  },
+
+  "features": [
+    {
+      "id": "mvp-spine-confirm",
+      "title": "跟当当敲定 MVP 主线就是『一次访谈→转写→AI整理章节→出一份交付物』",
+      "priority": "P0",
+      "status": "not_started",
+      "blockedBy": [],
+      "requires_human": "当当",
+      "definition_of_done": [
+        "确认脊梁是哪一种访谈（建议先做时光轴或家谱图，cici 案例已验证）",
+        "确认第一版交付物形态（网页章节 / 可下载 PDF）",
+        "确认先做哪条市场（银发低价 还是 自我探索高价）的前端"
+      ],
+      "evidence": [],
+      "notes": "这是动代码前的决策闸门。当当回来确认后，再把 skeleton 转 in_progress。"
+    },
+    {
+      "id": "new-skeleton",
+      "title": "搭干净新工程骨架（目录结构 / 会话状态模型 / 路由）",
+      "priority": "P0",
+      "status": "not_started",
+      "blockedBy": ["mvp-spine-confirm"],
+      "requires_human": "",
+      "definition_of_done": [
+        "定结构：保持 Node+Express 单 server.js+静态页，还是引入轻框架（小项目优先前者）",
+        "建出新目录骨架，能 npm start 起一个空壳 + /api/health 200",
+        "设计多次访谈的会话/进度状态模型（旧版是无状态的，新版需要）"
+      ],
+      "evidence": [],
+      "notes": "前端整套新做，别在 card.html 上改。"
+    },
+    {
+      "id": "import-questionbank",
+      "title": "把 Obsidian 问题库导入成结构化数据",
+      "priority": "P1",
+      "status": "not_started",
+      "blockedBy": ["new-skeleton"],
+      "requires_human": "",
+      "definition_of_done": [
+        "从 Obsidian 01_问题库 读自己版/长辈版/爬山版，转成 JSON 题库",
+        "题库带板块归属（家谱图/时光轴/...），供 interview 接口按板块出题"
+      ],
+      "evidence": [],
+      "notes": "核心 IP，直接搬，别自己编题。"
+    },
+    {
+      "id": "transplant-pipeline",
+      "title": "移植转写+LLM管道和提示词到新结构",
+      "priority": "P1",
+      "status": "not_started",
+      "blockedBy": ["new-skeleton"],
+      "requires_human": "",
+      "definition_of_done": [
+        "qwen-audio-turbo 转写、qwen-plus 整理跑通",
+        "提示词照搬旧 server.js（尤其『禁止问心情/感觉、只问人事地物时间』铁律 + 章节整理 + 家族基因）",
+        "用一段真录音验证转写→整理出章节"
+      ],
+      "evidence": [],
+      "notes": "旧提示词已对 cici 真实案例验证出活，别推倒重写。"
+    },
+    {
+      "id": "one-interview-e2e",
+      "title": "跑通一种结构化访谈端到端（脊梁）",
+      "priority": "P1",
+      "status": "not_started",
+      "blockedBy": ["import-questionbank", "transplant-pipeline"],
+      "requires_human": "",
+      "definition_of_done": [
+        "选一种访谈（建议时光轴/家谱图）：开始→按题库逐题→录音→转写→追问/下一题→完成",
+        "真浏览器真录音走完整条，产出章节故事",
+        "会话进度可保存、可续"
+      ],
+      "evidence": [],
+      "notes": "这条通了，其余 6 种访谈是复制粘贴+换题库。"
+    },
+    {
+      "id": "delivery-output",
+      "title": "章节故事 → 一份能交付的成品",
+      "priority": "P1",
+      "status": "not_started",
+      "blockedBy": ["one-interview-e2e"],
+      "requires_human": "",
+      "definition_of_done": [
+        "把多段章节汇成一份完整人生故事（网页可读）",
+        "能导出/下载（参考 cici 的 PDF 交付包形态）"
+      ],
+      "evidence": [],
+      "notes": "这是用户真正花钱买的东西。"
+    },
+    {
+      "id": "deploy-new",
+      "title": "新版部署到 ECS",
+      "priority": "P2",
+      "status": "not_started",
+      "blockedBy": ["one-interview-e2e"],
+      "requires_human": "当当（点阿里云控制台）",
+      "definition_of_done": [
+        "rsync 到 /opt/heirloom，pm2 heirloom 重启，health 200",
+        "edge-proxy 路由确认，公网入口可打开"
+      ],
+      "evidence": [],
+      "notes": "只走 本地→服务器 rsync，禁止直接改服务器。"
+    },
+    {
+      "id": "export-auth",
+      "title": "给 /api/export 加鉴权（安全债）",
+      "priority": "P2",
+      "status": "not_started",
+      "blockedBy": ["new-skeleton"],
+      "requires_human": "",
+      "definition_of_done": ["导出接口要 token 或登录，未授权 401"],
+      "evidence": [],
+      "notes": "正式对外前必须做，现在裸奔。"
+    },
+    {
+      "id": "server-oss",
+      "title": "服务器接 OSS（音频长期存储）",
+      "priority": "P2",
+      "status": "not_started",
+      "blockedBy": ["deploy-new"],
+      "requires_human": "当当（建 bucket + RAM key）",
+      "definition_of_done": ["配 OSS_* 环境变量，音频上 OSS，不再只存本地"],
+      "evidence": [],
+      "notes": "金钱剪刀已有 OSS 经验可复用。"
+    }
+  ]
+}
