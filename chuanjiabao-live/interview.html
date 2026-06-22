@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>传家宝 · 采访</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500&family=Noto+Sans+SC:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F5F0E8; --surface: #FBF8F3; --surface-2: #EDE8DF;
+      --ink: #1C1714; --ink-2: #5C5248; --ink-3: #9C9088;
+      --accent: #8B5E3C; --gold: #9B6F28; --green: #4A5940;
+      --serif: 'Noto Serif SC', serif; --sans: 'Noto Sans SC', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-weight: 300;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ── Layout: full screen, three rows ── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 430px;
+      margin: 0 auto;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 56px;
+      border-bottom: 1px solid rgba(28,23,20,0.06);
+      background: rgba(245,240,232,0.95);
+      backdrop-filter: blur(8px);
+    }
+    .topbar-info { display: flex; flex-direction: column; }
+    .topbar-name { font-family: var(--serif); font-size: 16px; font-weight: 400; color: var(--ink); }
+    .topbar-module { font-size: 11px; color: var(--ink-3); letter-spacing: 0.04em; margin-top: 1px; }
+    .topbar-btn {
+      background: none; border: none; cursor: pointer; padding: 8px;
+      color: var(--ink-3); font-size: 13px; min-height: 44px; min-width: 44px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; transition: color 0.2s, background 0.2s;
+    }
+    .topbar-btn:hover { color: var(--accent); background: rgba(139,94,60,0.06); }
+
+    /* ── Chat scroll area ── */
+    .chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Bubbles ── */
+    .bubble-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      animation: fadeUp 0.3s ease-out;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .bubble-row.ai { align-self: flex-start; max-width: 88%; }
+    .bubble-row.user { align-self: flex-end; flex-direction: row-reverse; max-width: 88%; }
+
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-family: var(--serif); font-weight: 400;
+    }
+    .avatar.ai-av { background: var(--accent); color: #FBF8F3; font-size: 12px; }
+    .avatar.user-av { background: var(--surface-2); color: var(--ink-2); font-size: 12px; }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.75;
+      max-width: 100%;
+    }
+
+    /* AI bubble: question card */
+    .bubble.ai {
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 4px 16px 16px 16px;
+      border-left: 2px solid var(--accent);
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 16px;
+    }
+
+    /* AI system/hint bubble */
+    .bubble.hint {
+      background: transparent;
+      color: var(--ink-3);
+      font-size: 13px;
+      font-family: var(--sans);
+      padding: 4px 8px;
+      line-height: 1.6;
+    }
+
+    /* User bubble: elder's answer */
+    .bubble.user {
+      background: rgba(139,94,60,0.1);
+      color: var(--ink);
+      border-radius: 16px 4px 16px 16px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    /* Thinking indicator */
+    .thinking {
+      display: flex; gap: 5px; align-items: center;
+      padding: 14px 18px;
+      background: var(--surface);
+      border-radius: 4px 16px 16px 16px;
+      border-left: 2px solid var(--accent);
+    }
+    .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); opacity: 0.4;
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── Bottom bar ── */
+    .bottom {
+      flex-shrink: 0;
+      padding: 16px 20px 32px;
+      background: var(--bg);
+      border-top: 1px solid rgba(28,23,20,0.06);
+    }
+
+    /* Status text above button */
+    .record-status {
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-3);
+      margin-bottom: 14px;
+      min-height: 20px;
+      transition: color 0.2s;
+      letter-spacing: 0.02em;
+    }
+    .record-status.active { color: var(--accent); }
+    .record-status.thinking { color: var(--gold); }
+
+    /* Record button */
+    .record-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .record-btn {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      transition: transform 0.15s ease-out, background-color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 4px 16px rgba(139,94,60,0.3);
+    }
+    .record-btn:active { transform: scale(0.94); }
+    .record-btn.recording { background: #8B3A3A; box-shadow: 0 4px 20px rgba(139,58,58,0.4); }
+    .record-btn.disabled { background: var(--surface-2); box-shadow: none; cursor: not-allowed; }
+
+    .record-btn svg { width: 28px; height: 28px; fill: #FBF8F3; transition: all 0.2s; }
+
+    /* Pulse ring when recording */
+    .record-btn::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .record-btn.recording::before {
+      opacity: 0.4;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.4; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+
+    /* Side buttons */
+    .side-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--surface);
+      border: 1.5px solid var(--surface-2);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, border-color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .side-btn:hover { background: var(--surface-2); }
+    .side-btn svg { width: 18px; height: 18px; fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-linecap: round; }
+
+    /* ── Setup screen ── */
+    .setup-screen {
+      flex: 1; display: flex; flex-direction: column;
+      justify-content: center; padding: 32px 24px;
+      gap: 24px;
+    }
+
+    .setup-title { font-family: var(--serif); font-size: 24px; font-weight: 400; color: var(--ink); text-wrap: balance; }
+    .setup-sub { font-size: 14px; color: var(--ink-2); line-height: 1.7; }
+
+    .field label { display: block; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%; padding: 12px 16px; border: 1.5px solid var(--surface-2);
+      border-radius: 10px; background: var(--surface); color: var(--ink);
+      font-family: var(--sans); font-size: 15px; font-weight: 300;
+      transition: border-color 0.2s; appearance: none;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); outline: none; }
+    .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239C9088' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; background-color: var(--surface); padding-right: 40px; }
+
+    .start-btn {
+      width: 100%; min-height: 52px;
+      background: var(--accent); color: #FBF8F3;
+      border: none; border-radius: 9999px;
+      font-family: var(--sans); font-size: 16px; font-weight: 400;
+      cursor: pointer; letter-spacing: 0.02em;
+      transition: background-color 0.2s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active { transform: scale(0.98); }
+    .start-btn:hover { background: #7A5234; }
+
+    /* ── Transcript badge under user bubble ── */
+    .transcript-raw {
+      font-size: 12px; color: var(--ink-3);
+      padding: 0 8px; margin-top: -8px;
+      text-align: right; line-height: 1.5;
+      display: none;
+    }
+
+    /* ── Waveform (fake) ── */
+    .waveform {
+      display: flex; align-items: center; justify-content: center;
+      gap: 3px; height: 24px; margin-bottom: 8px; opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .waveform.active { opacity: 1; }
+    .wave-bar {
+      width: 3px; background: var(--accent); border-radius: 2px;
+      animation: wave 0.8s ease-in-out infinite alternate;
+    }
+    .wave-bar:nth-child(1) { animation-delay: 0s; }
+    .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(6) { animation-delay: 0.05s; }
+    .wave-bar:nth-child(7) { animation-delay: 0.25s; }
+    @keyframes wave {
+      from { height: 4px; opacity: 0.4; }
+      to   { height: 20px; opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ── SETUP SCREEN ── -->
+  <div class="setup-screen" id="setupScreen">
+    <div>
+      <p style="font-family:var(--serif);font-size:13px;color:var(--ink-3);letter-spacing:0.08em;margin-bottom:12px;">传家宝 · 采访</p>
+      <h1 class="setup-title">开始之前，告诉我一些基本信息</h1>
+      <p class="setup-sub" style="margin-top:10px;">AI会根据这些信息，引导采访的方向。</p>
+    </div>
+
+    <div class="field">
+      <label>今天采访的是？</label>
+      <input type="text" id="elderName" placeholder="如：外公、爷爷、妈妈" maxlength="10">
+    </div>
+
+    <div class="field">
+      <label>你们的关系</label>
+      <input type="text" id="relation" placeholder="如：外孙女、孙子、女儿" maxlength="10">
+    </div>
+
+    <div class="field">
+      <label>选择采访板块</label>
+      <select id="moduleSelect">
+        <optgroup label="时间维度">
+          <option value="名字与出生">00 · 名字与出生</option>
+          <option value="童年的家">01 · 童年的家 / 故乡</option>
+          <option value="读书与成长">02 · 读书与成长</option>
+          <option value="青年与选择">03 · 青年与选择</option>
+          <option value="我的爱情">04 · 我的爱情</option>
+          <option value="为人父母">05 · 为人父母</option>
+        </optgroup>
+        <optgroup label="自我维度">
+          <option value="与自己">06 · 与自己</option>
+        </optgroup>
+        <optgroup label="关系维度">
+          <option value="原生家庭">07 · 原生家庭</option>
+          <option value="大家庭与手足">08 · 大家庭与手足</option>
+          <option value="关键他人">09 · 关键他人</option>
+        </optgroup>
+        <optgroup label="家族暗线">
+          <option value="家族身体与迁徙">10 · 家族身体与迁徙</option>
+          <option value="家族秘密与离奇">11 · 家族秘密与离奇</option>
+        </optgroup>
+        <optgroup label="收束">
+          <option value="给后代的话">13 · 给后代的话</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <button class="start-btn" id="startBtn">开始采访</button>
+  </div>
+
+  <!-- ── CHAT SCREEN (hidden initially) ── -->
+  <div id="chatScreen" style="display:none;flex-direction:column;height:100%;flex:1;">
+
+    <div class="topbar">
+      <div class="topbar-info">
+        <span class="topbar-name" id="topbarName">—</span>
+        <span class="topbar-module" id="topbarModule">—</span>
+      </div>
+      <button class="topbar-btn" id="endBtn" title="结束采访，生成传家册">
+        完成
+      </button>
+    </div>
+
+    <div class="chat" id="chat"></div>
+
+    <div class="bottom">
+      <div class="waveform" id="waveform">
+        <div class="wave-bar" style="height:8px"></div>
+        <div class="wave-bar" style="height:14px"></div>
+        <div class="wave-bar" style="height:18px"></div>
+        <div class="wave-bar" style="height:12px"></div>
+        <div class="wave-bar" style="height:20px"></div>
+        <div class="wave-bar" style="height:16px"></div>
+        <div class="wave-bar" style="height:10px"></div>
+      </div>
+      <div class="record-status" id="recordStatus">点击麦克风开始说话</div>
+      <div class="record-wrap">
+        <button class="side-btn" id="skipBtn" title="跳过这个问题">
+          <svg viewBox="0 0 24 24"><polyline points="5 12 19 12"/><polyline points="13 6 19 12 13 18"/></svg>
+        </button>
+        <button class="record-btn" id="recordBtn">
+          <!-- mic icon -->
+          <svg viewBox="0 0 24 24" id="micIcon"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+          <!-- stop icon (hidden) -->
+          <svg viewBox="0 0 24 24" id="stopIcon" style="display:none"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+        </button>
+        <button class="side-btn" id="replayBtn" title="重播当前问题">
+          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Result overlay -->
+<div id="resultOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;overflow-y:auto;padding:32px 24px 80px;">
+  <div style="max-width:430px;margin:0 auto;">
+    <h2 style="font-family:var(--serif);font-size:22px;font-weight:400;color:var(--ink);margin-bottom:8px;">采访完成</h2>
+    <p style="font-size:13px;color:var(--ink-3);margin-bottom:28px;" id="resultMeta">—</p>
+
+    <p style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;">传家册章节</p>
+    <div id="resultChapter" style="background:var(--surface);border-radius:12px;padding:24px;font-family:var(--serif);font-size:15px;line-height:1.9;color:var(--ink);border-left:2px solid var(--gold);margin-bottom:20px;white-space:pre-wrap;"></div>
+
+    <p style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);margin-bottom:12px;">家脉图片段</p>
+    <div id="resultGene" style="background:rgba(74,89,64,0.07);border-radius:12px;padding:20px;margin-bottom:32px;font-size:14px;line-height:1.8;color:var(--ink);"></div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button onclick="copyResult()" style="min-height:48px;background:var(--accent);color:#FBF8F3;border:none;border-radius:9999px;font-family:var(--sans);font-size:15px;cursor:pointer;">复制全部内容</button>
+      <button onclick="location.reload()" style="min-height:48px;background:transparent;color:var(--accent);border:1.5px solid rgba(139,94,60,0.3);border-radius:9999px;font-family:var(--sans);font-size:15px;cursor:pointer;">再采访一次</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 问题库 · 自己版 2026-05-28 ───────────────────────────
+const QUESTION_BANK = {
+  '名字与出生': [
+    '你的名字是谁取的？有没有什么含义？',
+    '这个名字里有没有特殊的东西——比如"性别期待"或者"五行补缺"？',
+    '你有没有小名？谁这样叫你？现在还有人这样叫吗？',
+    '这个小名对应的是你心里"哪一种身份感"？',
+    '你最不喜欢别人怎么称呼你？为什么？',
+    '小时候有没有被取过外号？来源是什么？',
+    '你出生的时候，家里是什么态度？期待的、担忧的、还是沉默对待的？',
+    '你出生那一年，家里正在经历什么——贫穷、迁徙、疾病、还是别的事？',
+    '你是不是"在错误时间出生的孩子"？比如家里刚走了人、刚出事、或者计划生育……',
+    '你出生时妈妈的处境是什么？身体上、情绪上、关系里？',
+  ],
+  '童年的家': [
+    '你小时候住在哪里？能描述一下那个房子或院子吗？',
+    '家里最重要的一件东西是什么？它现在在哪里？',
+    '小时候家里谁说话最有分量？ta 说过哪句话你还记得？',
+    '你小时候家里穷吗？那时候"穷"对你意味着什么？',
+    '童年里最让你害怕的一件事是什么？',
+    '记忆里最快乐的一个下午，是在做什么？',
+    '童年时听爸妈讲过最多的一句话或一个词是什么？',
+    '嗅觉里，你的故乡/童年是什么味道？',
+    '味觉里，故乡最经典的一道菜是什么？是谁做的？',
+    '视觉里，故乡的画面是什么样的？描述一个具体的角度。',
+    '听觉里，故乡给你最深刻的一个声音是什么？',
+    '故乡的人，有没有一个你一直惦记着的？',
+    '你后来离开故乡了吗？如果可以再回去住一段时间，你愿意吗？',
+  ],
+  '读书与成长': [
+    '在你读书成长的过程当中，有没有一件事印象特别深？',
+    '有没有哪个老师或者同学对你印象特别深？可以是对你特别好的，也可以是特别差的。',
+    '有没有特别擅长或特别不行的科目？',
+    '如果抛开一切让你重新选，你会选文科还是理科？或者体育、美术、音乐哪个方向？',
+    '有没有因为家里的原因没能继续念书？那时候心里什么感受？',
+    '年轻时有没有一个"梦想"，哪怕很小的那种？',
+    '第一次离开家乡是什么时候，去哪里，为什么？',
+  ],
+  '青年与选择': [
+    '你第一份工作是什么？是怎么找到的？',
+    '那时候一个月挣多少钱？钱都花在哪里了？',
+    '年轻时最想成为什么样的人？后来变成那样了吗？',
+    '有没有一门手艺是自己摸索学会的，没人正式教过你？',
+    '年轻时有没有一段特别迷茫、不知道要做什么的时期？',
+    '那时候最好的朋友是谁？你们是怎么认识的？',
+    '如果让你选择一个时间点回去，跟那时候的自己对话 1 分钟，你最想说什么？',
+  ],
+  '我的爱情': [
+    '你现在的感情状态是什么？已婚/恋爱中/单身/离异/不打算找？',
+    '如果你目前不打算找对象，是为什么？',
+    '你觉得谈恋爱给你带来的困扰是什么？这种困扰你身边的谁也有？',
+    '你想要孩子吗？为什么想/为什么不想？',
+    '这辈子有没有哪一段感情或者哪一个人，到现在你心里还有位置？',
+    '如果让你重新选一遍——挑爱人/不挑爱人/挑生孩子/不挑生孩子——你会怎么选？',
+    '你身上对待感情的方式，跟你爸妈、外公外婆、爷爷奶奶里的哪一个最像？',
+  ],
+  '为人父母': [
+    '还记得第一次抱着孩子的感受吗？',
+    '孩子小时候，最让你骄傲的一件事是什么？',
+    '养孩子过程中，最让你担心的是什么？',
+    '你觉得自己最成功的教育是什么？最遗憾的是什么？',
+    '有没有一件当时对孩子做了、后来觉得做错了的事？',
+    '如果可以回到孩子成长过程中的某一刻，你最想回到哪一刻？为什么？',
+    '你希望孩子继承你的哪一点？不希望继承哪一点？',
+    '孩子最近有没有说过哪句话，让你心里咯噔一下？',
+  ],
+  '与自己': [
+    '你跟别人最大的不同是什么？',
+    '什么时候，你第一次觉得自己"真正长大了"？',
+    '你这辈子有没有经历过一次让你产生濒死感的事？',
+    '你喜欢自己吗？什么时候喜欢，什么时候不喜欢？最喜欢自己哪一点？',
+    '如果让你跟"另一个跟你一样的人"谈恋爱，你愿意吗？',
+    '你觉得自己最大的天赋是什么？可以是很普通的事。',
+    '有没有一件事，一直想做但一直没做，到现在还放不下？',
+    '你想留给这个世界最后一句话是什么？',
+  ],
+  '原生家庭': [
+    '你觉得你父母（你小时候）有钱吗？你小时候过的生活算富足吗？',
+    '你爸跟你妈吵架最严重的是什么时候？吵的是什么？',
+    '你爸和你妈，谁是家里说话有分量的那个？',
+    '你最不希望继承父母的哪一点，但你身上又有？',
+    '你父母这辈子有没有遗憾？你怎么知道的？',
+    '回忆里跟你父亲有关的，现在脑海里第一个蹦出来的画面是什么？',
+    '回忆里跟你母亲有关的，现在脑海里第一个蹦出来的画面是什么？',
+    '你父亲/母亲情绪波澜最大的一次事情是什么？',
+  ],
+  '大家庭与手足': [
+    '你的整个大家庭（含表/堂/叔伯姑姨）里，印象最深刻的是谁？',
+    '你跟谁关系最好？谁对你的影响最深？',
+    '你最不喜欢家里谁？为什么？',
+    '亲戚们都是如何赚钱、失钱、怕钱、守钱的？你继承到什么金钱模式？',
+    '亲戚里有没有人出现过重大疾病/投资失败/坐牢/自杀等重大事件？',
+    '亲戚里有没有人有不良习性？这件事家里怎么处理的？',
+    '有没有觉得对某个家人亏欠过？或者觉得被某个家人深深亏欠？',
+    '这个大家庭里，有没有重复了三代以上的事？',
+  ],
+  '关键他人': [
+    '抛开所有亲戚，从小到大对你影响最深的一个人是谁？哪怕只见过一次。',
+    'ta 给你的影响是好的还是坏的？描述一个跟 ta 有关的具体场景。',
+    '你印象最深刻的朋友是谁？给你上过深刻一课的那种。',
+    '这辈子有没有一个朋友，现在还很想念，但已经失去联系了？',
+    '有没有一个不是亲戚的人，曾经在某个时刻帮过你，是别人都没帮的？',
+    '你觉得什么样的人才算"真正进了你的核心亲密圈"？这样的人现在还有几个？',
+    '这些关键他人给了你什么，是家人给不了的？',
+  ],
+  '家族身体与迁徙': [
+    '你的家族里，大家长得像吗？哪些五官或体型是家族共有的？',
+    '你跟爸/妈/爷爷/奶奶/外公/外婆，长得最像谁？最像哪一个部位？',
+    '家族里有没有什么特殊的外貌印记？',
+    '家族里反复出现的疾病是什么？',
+    '哪个器官在家族里"最容易出问题"？',
+    '家族里的人怎么死的？最早走的那个是几岁？发生了什么？',
+    '你是本地人吗？家里三代以内有没有迁徙过？从哪里搬到哪里？',
+    '为什么搬？逃难/经商/婚姻/支边/政治原因？',
+    '你身上有没有故乡的"残余"——口音、饮食、习惯、信仰？哪一条是丢不掉的？',
+  ],
+  '家族秘密与离奇': [
+    '你从小到大，身边有没有发生过一些离奇的、说不清楚的事情？',
+    '你们家族有没有什么不可告人的秘密？',
+    '家里有没有抱养/领养/送养/过继的经历？为什么发生？',
+    '家族里有没有人是"消失"的——失踪/出走/断绝关系/不准提起？',
+    '家族里有没有什么"绝对不能做"的禁忌？这个禁忌的起源你知道吗？',
+    '谁的故事没有人愿意讲？',
+    '谁的名字一提起来气氛就变了？',
+    '家里有没有一个不能问的人？有没有一件不能提的事？',
+    '你小时候有没有感觉到，有些东西虽然没人说，但所有人都知道？',
+    '你家族里最大的秘密是什么？如果你不知道，你感觉可能和什么有关？',
+    '这个秘密让后代学会了什么？沉默、警觉、羞耻、伪装，还是不信任？',
+    '你家族里谁活得最自由？谁活得最憋屈？谁最会赚钱？谁最不会表达爱？',
+  ],
+  '给后代的话': [
+    '你最想让后代记住的一件事是什么？',
+    '你觉得我们家族最独特的地方是什么？',
+    '你希望家族的什么，能一代一代传下去？',
+    '你希望家族的什么，到你这一代就改变了？',
+    '如果只能留一句话给后代，你会说什么？',
+    '你的孩子（或未来的孩子/侄辈），你希望 ta 长大后从你身上记住的是什么？',
+    '有没有什么话，你一直想说，但从来没有机会说出来的？',
+  ],
+};
+
+// ── State ────────────────────────────────────────────────
+let state = {
+  elderName: '', relation: '', module: '',
+  history: [],         // {role, content} for AI context
+  transcript: [],      // {question, answer} pairs for final generation
+  currentQuestion: '',
+  questionCount: 0,
+  isRecording: false,
+  isThinking: false,
+  mediaRecorder: null,
+  audioChunks: [],
+  stream: null,
+};
+
+// ── Setup ────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', async () => {
+  const name = document.getElementById('elderName').value.trim();
+  if (!name) {
+    const field = document.getElementById('elderName');
+    field.style.borderColor = '#8B5E3C';
+    field.placeholder = '请先填写长辈的名字或称呼';
+    field.focus();
+    setTimeout(() => { field.style.borderColor = ''; }, 2000);
+    return;
+  }
+  state.elderName = name;
+  state.relation  = document.getElementById('relation').value.trim() || '子女';
+  state.module    = document.getElementById('moduleSelect').value;
+
+  // 立刻切换到采访界面，不等麦克风权限
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('chatScreen').style.display = 'flex';
+  document.getElementById('topbarName').textContent = state.elderName;
+  document.getElementById('topbarModule').textContent = '板块 · ' + state.module;
+
+  // 获取第一个问题
+  await getFirstQuestion();
+});
+
+// ── Get first question from AI ────────────────────────────
+async function getFirstQuestion() {
+  showThinking();
+  try {
+    const res = await fetch('/api/interview-start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        elderName: state.elderName,
+        relation: state.relation,
+        module: state.module,
+        questionBank: QUESTION_BANK[state.module] || []
+      })
+    });
+    const data = await res.json();
+    hideThinking();
+    if (data.question) {
+      state.currentQuestion = data.question;
+      state.history.push({ role: 'assistant', content: data.question });
+      await addBubbleTypewriter('ai', data.question, 45);
+    }
+  } catch(e) {
+    hideThinking();
+    addBubble('hint', '⚠️ 获取问题失败：' + e.message + ' — 请刷新页面重试。');
+  }
+}
+
+// ── Recording ────────────────────────────────────────────
+const recordBtn = document.getElementById('recordBtn');
+
+recordBtn.addEventListener('click', async () => {
+  if (state.isThinking) return;
+  if (!state.isRecording) startRecording();
+  else stopRecording();
+});
+
+async function startRecording() {
+  if (!state.stream) {
+    try { state.stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+    catch(e) { addBubble('hint','请允许麦克风访问权限'); return; }
+  }
+
+  state.audioChunks = [];
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus' : 'audio/mp4';
+
+  state.mediaRecorder = new MediaRecorder(state.stream, { mimeType });
+  state.mediaRecorder.ondataavailable = e => { if (e.data.size > 0) state.audioChunks.push(e.data); };
+  state.mediaRecorder.onstop = processRecording;
+  state.mediaRecorder.start(100);
+
+  state.isRecording = true;
+  recordBtn.classList.add('recording');
+  document.getElementById('micIcon').style.display = 'none';
+  document.getElementById('stopIcon').style.display = 'block';
+  document.getElementById('waveform').classList.add('active');
+  setStatus('正在录音…点击停止', 'active');
+}
+
+function stopRecording() {
+  if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+    state.mediaRecorder.stop();
+  }
+  state.isRecording = false;
+  recordBtn.classList.remove('recording');
+  document.getElementById('micIcon').style.display = 'block';
+  document.getElementById('stopIcon').style.display = 'none';
+  document.getElementById('waveform').classList.remove('active');
+  setStatus('处理中…', 'thinking');
+  recordBtn.classList.add('disabled');
+}
+
+async function processRecording() {
+  state.isThinking = true;
+  const blob = new Blob(state.audioChunks, { type: state.mediaRecorder.mimeType });
+
+  try {
+    // ── 第一步：转录，立刻显示文字 ──────────────────────
+    setStatus('转录中…', 'thinking');
+    const audioForm = new FormData();
+    audioForm.append('audio', blob, 'recording.webm');
+    const transRes = await fetch('/api/transcribe', { method: 'POST', body: audioForm });
+    const transData = await transRes.json();
+    if (transData.error) throw new Error(transData.error);
+
+    const transcript = transData.transcript;
+    state.history.push({ role: 'user', content: transcript });
+    state.transcript.push({ question: state.currentQuestion, answer: transcript });
+    state.questionCount++;
+
+    // ── 第二步：打字机显示转录 + 同时发 AI 请求（并行）──
+    setStatus('AI 思考中…', 'thinking');
+
+    const decidePromise = fetch('/api/interview-turn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        preTranscript: transcript,
+        question: state.currentQuestion,
+        elderName: state.elderName,
+        relation: state.relation,
+        module: state.module,
+        history: JSON.stringify(state.history),
+        questionBank: QUESTION_BANK[state.module] || []
+      })
+    }).then(r => r.json());
+
+    // 打字机效果展示转录文字（速度与文字长度自适应，最快30ms/字，最慢60ms）
+    const msPerChar = Math.min(60, Math.max(30, Math.round(3000 / transcript.length)));
+    await addBubbleTypewriter('user', transcript, msPerChar);
+
+    // 等 AI 结果（打字机期间已在并行处理）
+    showThinking();
+    const data = await decidePromise;
+    if (data.error) throw new Error(data.error);
+
+    await sleep(300);
+    hideThinking();
+
+    if (data.action === 'followup' && data.question) {
+      state.currentQuestion = data.question;
+      state.history.push({ role: 'assistant', content: data.question });
+      await addBubbleTypewriter('ai', data.question, 45);
+    } else if (data.action === 'next' && data.question) {
+      if (data.summary) addBubble('hint', data.summary);
+      await sleep(300);
+      state.currentQuestion = data.question;
+      state.history.push({ role: 'assistant', content: data.question });
+      await addBubbleTypewriter('ai', data.question, 45);
+    } else if (data.action === 'complete') {
+      addBubble('hint', '这个板块的问题已经问完了。');
+      await finishInterview();
+      return;
+    }
+
+    setStatus('点击麦克风开始说话', '');
+  } catch(e) {
+    hideThinking();
+    addBubble('hint', `出错了：${e.message}`);
+    setStatus('点击麦克风开始说话', '');
+  }
+
+  state.isThinking = false;
+  recordBtn.classList.remove('disabled');
+}
+
+// ── Skip / Replay ─────────────────────────────────────────
+document.getElementById('skipBtn').addEventListener('click', async () => {
+  if (state.isThinking || state.isRecording) return;
+  addBubble('hint', '跳过了这个问题');
+  state.isThinking = true;
+  recordBtn.classList.add('disabled');
+  showThinking();
+
+  try {
+    const res = await fetch('/api/interview-next', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        elderName: state.elderName,
+        relation: state.relation,
+        module: state.module,
+        history: state.history,
+        skipped: state.currentQuestion,
+        questionBank: QUESTION_BANK[state.module] || []
+      })
+    });
+    const data = await res.json();
+    hideThinking();
+    if (data.question) {
+      state.currentQuestion = data.question;
+      state.history.push({ role: 'assistant', content: data.question });
+      addBubble('ai', data.question);
+    } else {
+      addBubble('hint', '已经问完了所有问题。');
+      await finishInterview();
+      return;
+    }
+  } catch(e) {
+    hideThinking();
+    addBubble('hint', `出错了：${e.message}`);
+  }
+  state.isThinking = false;
+  recordBtn.classList.remove('disabled');
+  setStatus('点击麦克风开始说话', '');
+});
+
+document.getElementById('replayBtn').addEventListener('click', () => {
+  if (state.currentQuestion) addBubble('hint', '↑ 重新看上面的问题');
+});
+
+// ── End button ────────────────────────────────────────────
+document.getElementById('endBtn').addEventListener('click', async () => {
+  if (state.transcript.length === 0) {
+    addBubble('hint', '还没有录制任何内容，先说几句吧。');
+    return;
+  }
+  await finishInterview();
+});
+
+async function finishInterview() {
+  addBubble('hint', '正在为你生成传家册章节和家脉图…');
+  recordBtn.classList.add('disabled');
+  setStatus('生成中…', 'thinking');
+
+  try {
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        transcript: state.transcript.map(t => `问：${t.question}\n答：${t.answer}`).join('\n\n'),
+        module: state.module,
+        elderName: state.elderName,
+        relation: state.relation
+      })
+    });
+    const data = await res.json();
+
+    document.getElementById('resultMeta').textContent =
+      `${state.elderName} · ${state.module} · ${state.transcript.length}段问答`;
+    document.getElementById('resultChapter').textContent = data.chapter || '';
+
+    const g = data.gene || {};
+    document.getElementById('resultGene').innerHTML =
+      `<p style="font-size:12px;letter-spacing:0.08em;color:var(--green);margin-bottom:12px;">AI提取 · 家族基因信号</p>` +
+      (g.talent ? `<p style="margin-bottom:10px;"><span style="font-size:12px;color:var(--green);opacity:0.8">世代天赋</span><br>${g.talent}</p>` : '') +
+      (g.limit  ? `<p style="margin-bottom:10px;"><span style="font-size:12px;color:var(--green);opacity:0.8">家族局限</span><br>${g.limit}</p>` : '') +
+      (g.connection ? `<p><span style="font-size:12px;color:var(--green);opacity:0.8">与子女的连接</span><br>${g.connection}</p>` : '');
+
+    document.getElementById('resultOverlay').style.display = 'block';
+    document.getElementById('resultOverlay').scrollTop = 0;
+  } catch(e) {
+    addBubble('hint', `生成失败：${e.message}`);
+    recordBtn.classList.remove('disabled');
+    setStatus('点击麦克风开始说话', '');
+  }
+}
+
+function copyResult() {
+  const chapter = document.getElementById('resultChapter').textContent;
+  const gene = document.getElementById('resultGene').innerText;
+  navigator.clipboard.writeText(
+    `【传家册章节 · ${state.elderName} · ${state.module}】\n\n${chapter}\n\n---\n\n【家脉图片段】\n${gene}`
+  ).then(() => {
+    const btn = event.target;
+    btn.textContent = '已复制 ✓';
+    setTimeout(() => btn.textContent = '复制全部内容', 2000);
+  });
+}
+
+// ── UI helpers ────────────────────────────────────────────
+let thinkingEl = null;
+
+function addBubble(type, text) {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = `bubble-row ${type === 'user' ? 'user' : 'ai'}`;
+
+  if (type === 'hint') {
+    row.innerHTML = `<div class="bubble hint">${text}</div>`;
+  } else if (type === 'ai') {
+    row.innerHTML = `
+      <div class="avatar ai-av">传</div>
+      <div class="bubble ai">${text}</div>`;
+  } else {
+    row.innerHTML = `
+      <div class="bubble user">${text}</div>
+      <div class="avatar user-av">${state.elderName ? state.elderName[0] : '长'}</div>`;
+  }
+
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function showThinking() {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = 'bubble-row ai';
+  row.id = 'thinkingRow';
+  row.innerHTML = `<div class="avatar ai-av">传</div><div class="thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function hideThinking() {
+  const el = document.getElementById('thinkingRow');
+  if (el) el.remove();
+}
+
+function setStatus(text, cls) {
+  const el = document.getElementById('recordStatus');
+  el.textContent = text;
+  el.className = 'record-status' + (cls ? ` ${cls}` : '');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// 打字机效果：逐字显示气泡，返回 Promise，同时可以做别的事
+function addBubbleTypewriter(type, text, msPerChar = 40) {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = `bubble-row ${type === 'user' ? 'user' : 'ai'}`;
+
+  let bubbleEl;
+  if (type === 'ai') {
+    row.innerHTML = `<div class="avatar ai-av">传</div><div class="bubble ai"></div>`;
+    bubbleEl = row.querySelector('.bubble');
+  } else {
+    row.innerHTML = `<div class="bubble user"></div><div class="avatar user-av">${state.elderName ? state.elderName[0] : '长'}</div>`;
+    bubbleEl = row.querySelector('.bubble');
+  }
+  chat.appendChild(row);
+
+  return new Promise(resolve => {
+    let i = 0;
+    function tick() {
+      if (i < text.length) {
+        bubbleEl.textContent += text[i++];
+        chat.scrollTop = chat.scrollHeight;
+        setTimeout(tick, msPerChar);
+      } else {
+        resolve();
+      }
+    }
+    tick();
+  });
+}
+</script>
+</body>
+</html>
